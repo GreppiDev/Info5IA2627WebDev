@@ -208,7 +208,7 @@ DELETE FROM studenti WHERE Matricola = 123;
 -- per vedere la chiave esterna faccio una SHOW CREATE TABLE
 SHOW CREATE TABLE assenze \G
 -- rimuovo la chiave esterna precedente
-ALTER TABLE assenze DROP FOREIGN KEY assenze_ibfk_1;
+ALTER TABLE assenze DROP CONSTRAINT `nome_constraint`;
 -- ricostruiamo la chiave esterna con la clausola CASCADE
 ALTER TABLE assenze ADD CONSTRAINT assenze_fk1 
 	FOREIGN KEY (Studente) REFERENCES studenti(Matricola) 

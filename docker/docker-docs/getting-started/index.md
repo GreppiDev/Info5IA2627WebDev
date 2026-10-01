@@ -671,7 +671,7 @@ host system's filesystem
 
 [In Windows](https://superuser.com/questions/1726309/convert-wsl-path-to-uri-compliant-wsl-localhost) sono nella cartella `\\wsl.localhost\docker-desktop\mnt\docker-desktop-disk\data\docker\volumes`
 
-Lo stesso percorso si può scrivere anche come: `\\wsl$\docker-desktop-data\data\docker\volumes`
+Lo stesso percorso si può scrivere anche come: `\\wsl$\docker-desktop\mnt\docker-desktop-disk\data\docker\volumes`
 
 :memo: :warning: **Attenzione!** la sintassi per il montaggio dei volumi e delle cartelle (bind mount) è cambiata nel tempo e, per compatibilità con i primi comandi docker, esistono più modi per connettere uno spazio di storage ad un container.
 
@@ -847,10 +847,10 @@ si apre un'altra finestra del terminale su WSL (Ubuntu) e si digita il comando s
         password --> quella usata all'atto della creazione del container
         ```
 
-    2) Si effettua la connessione utilizzando `mysql client` della distribuzione Linux della WSL. Ad esempio, per Ubuntu 24.04 è possibile installare `mysql-client-core` con il comando `sudo apt install mysql-client-core-8.0`.
+    2) Si effettua la connessione utilizzando `mysql client` della distribuzione Linux della WSL. Ad esempio, per Ubuntu 26.04 è possibile installare `mysql-client` con il comando `sudo apt install mysql-client`.
 
         ```sh
-        sudo apt install mysql-client-core-8.0
+        sudo apt install mysql-client
         ```
 
         Dopo aver installato il pacchetto suddetto, la connessione può avvenire direttamente dalla shell della
@@ -863,7 +863,7 @@ si apre un'altra finestra del terminale su WSL (Ubuntu) e si digita il comando s
         In questo caso occorre inserire l'indirizzo IP del server e non il nome DNS (localhost) altrimenti la connessione
         non avrà successo.
 
-        :memo: **Importante**: quando si utilizza una distribuzione WSL a scuola e si vuole accedere a internet dalla `shell`, ad esempio per eseguire il comando `curl`, oppure per scaricare o aggiornare un pacchetto tramite `apt`, oppure `apt-get`, occorre configurare il proxy e alcune applicazioni di Linux hanno una configurazione specifica per il proxy.
+        :memo: **Importante solo se si è dietro a un proxy**: quando si utilizza una distribuzione WSL dietro a un proxy e si vuole accedere a internet dalla `shell`, ad esempio per eseguire il comando `curl`, oppure per scaricare o aggiornare un pacchetto tramite `apt`, oppure `apt-get`, occorre configurare il proxy e alcune applicazioni di Linux hanno una configurazione specifica per il proxy. Nell'esempio seguente si ipotizza di avere un proxy con indirizzo `proxy.intranet` e porta `3128`. In questo caso, per poter utilizzare il comando `apt` o `apt-get` occorre configurare il proxy per questi comandi. La configurazione del proxy per `apt` può essere fatta creando un file di configurazione in `/etc/apt/apt.conf.d/` con il nome `proxy.conf` e con il contenuto:
 
         ```sh
         # impostare il proxy per apt
@@ -901,8 +901,7 @@ opzioni:
 
         Nell'istruzione precedente, l'ultima parte del comando docker è mysql `-hsome-mysql -uexample-user -p` ed è usata per lanciare il client di mysql verso un altro container dove è in esecuzione il server di mysql (mysqld). **L'esempio precedente assume che sia stata creata una user-defined network per i container in modo che sia abilitata la risoluzione DNS dei nomi dei container e che il nome del container del server di MySQL abbia il nome `some-mysql`**. In alternativa, si può:
 
-   2) Utilizzare l'indirizzo privato del server al posto del nome host (`some-host`). Questo indirizzo privato può
-   essere recuperato eseguendo il comando `docker container inspect` sul container su cui è in esecuzione il server di
+   2) Utilizzare l'indirizzo privato del server al posto del nome host (`some-host`). Questo indirizzo privato può essere recuperato eseguendo il comando `docker container inspect` sul container su cui è in esecuzione il server di
    MySQL.
 
         ```sh
@@ -946,7 +945,7 @@ opzioni:
         - Estrazione dell'indirizzo ip del server con il comando `jq -r '.[0].NetworkSettings.Networks[].IPAddress'`
 
         ```sh
-            sudo apt-get install jq
+            sudo apt install jq
             container_ip=$(docker inspect mysql-server1 | jq -r '.[0].NetworkSettings.Networks[].IPAddress')
             docker run -it --name my-client --rm mysql:latest mysql -h"$container_ip" -uroot -p
         ```

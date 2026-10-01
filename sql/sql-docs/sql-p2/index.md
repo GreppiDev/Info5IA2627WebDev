@@ -450,7 +450,7 @@ Supponiamo di alterare la definizione di integrità referenziale come mostrato n
 
 ```sql
  -- rimuoviamo la chiave esterna precedente
-ALTER TABLE assenze DROP FOREIGN KEY assenze_ibfk_1;
+ALTER TABLE assenze DROP CONSTRAINT `nome_constraint`;
 -- ricostruiamo la chiave esterna con la clausola CASCADE
 ALTER TABLE assenze ADD CONSTRAINT assenze_fk1 
   FOREIGN KEY (Studente) REFERENCES studenti(Matricola) 
@@ -476,7 +476,7 @@ Supponiamo di alterare la definizione di integrità referenziale come mostrato n
 
 ```sql
  -- rimuoviamo la chiave esterna precedente
-ALTER TABLE assenze DROP FOREIGN KEY assenze_ibfk_1;
+ALTER TABLE assenze DROP CONSTRAINT `nome_constraint`;
 
 -- modifichiamo la definizione della colonna Studente, in modo da rimuovere il vincolo NOT NULL su Studente
 ALTER TABLE assenze MODIFY Studente VARCHAR(30);
