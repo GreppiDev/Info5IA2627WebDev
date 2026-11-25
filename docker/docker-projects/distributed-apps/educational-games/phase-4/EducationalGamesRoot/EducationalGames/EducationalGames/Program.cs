@@ -681,7 +681,7 @@ app.MapPost("/api/telemetry/test", async (
 
 // Map Game Endpoints
 app.MapGroup("/api") // Gruppo API generico
-   .WithTags("Games & Topics") // Tag per Swagger
+   .WithTags("Games & Topics") // Tag per OpenAPI / Scalar
    .MapGameEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api") // Gruppo API generico
@@ -689,23 +689,23 @@ app.MapGroup("/api") // Gruppo API generico
    .MapClassiEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api")
-   .WithTags("Iscrizioni") // Tag per Swagger
+   .WithTags("Iscrizioni") // Tag per OpenAPI / Scalar
    .MapIscrizioniEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api")
-   .WithTags("Progressi") // Tag per Swagger
+   .WithTags("Progressi") // Tag per OpenAPI / Scalar
    .MapProgressoEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api")
-   .WithTags("Classifiche") // Tag per Swagger
+   .WithTags("Classifiche") // Tag per OpenAPI / Scalar
    .MapClassificheEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api")
-   .WithTags("Dashboard") // Tag per Swagger
+   .WithTags("Dashboard") // Tag per OpenAPI / Scalar
    .MapDashboardEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 app.MapGroup("/api/admin") // Prefisso specifico per API admin
-   .WithTags("Admin") // Tag per Swagger
+   .WithTags("Admin") // Tag per OpenAPI / Scalar
    .MapAdminEndpoints(app.Services.GetRequiredService<ILoggerFactory>());
 
 //Map pages endpoints
