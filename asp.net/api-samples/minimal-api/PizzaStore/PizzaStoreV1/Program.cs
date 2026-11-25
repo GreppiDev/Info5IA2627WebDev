@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV1.Data;
 using PizzaStoreV1.Model;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👈 si aggiunga la connection string
@@ -10,16 +11,6 @@ var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "D
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-//questa configurazione è richiesta solo nel caso in cui si voglia il supporto a Swagger tramite NSwag
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -36,22 +27,11 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	//adding web UI for Swagger with NSwag
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");

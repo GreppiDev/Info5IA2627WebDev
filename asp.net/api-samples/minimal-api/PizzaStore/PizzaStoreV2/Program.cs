@@ -1,25 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV2.Model;
 using PizzaStoreV2.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👇 si aggiunga la connection string
 //var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "Data Source=DefaultPizzas.db";
-var connectionString = builder.Configuration.GetConnectionString("PizzasV2");
+var connectionString = builder.Configuration.GetConnectionString("PizzasV2")
+	?? throw new InvalidOperationException("Connection string 'PizzasV2' not found.");
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//AddOpenApi si può usare dalla versione 9 in poi di dotnet
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -32,39 +24,35 @@ if (builder.Environment.IsDevelopment())
 // 👇 si modifichi il DbContext per l'accesso al database 
 //builder.Services.AddDbContext<PizzaDb>(options => options.UseSqlite(connectionString));
 
-// 👇 autodetect della versione del server di MariaDb
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Pomelo
-builder.Services.AddDbContext<PizzaDb>(
-		dbContextOptions => dbContextOptions
-			.UseMySql(connectionString, serverVersion)
-			// The following three options help with debugging, but should
-			// be changed or removed for production.
+// 👇 versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3),
+// così `dotnet ef` funziona anche quando il container DB è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Microting
+builder.Services.AddDbContext<PizzaDb>(dbContextOptions =>
+{
+	dbContextOptions.UseMySql(connectionString, serverVersion);
+
+	if (builder.Environment.IsDevelopment())
+	{
+		// The following three options help with debugging, but should
+		// not be enabled in production.
+		dbContextOptions
 			.LogTo(Console.WriteLine, LogLevel.Information)
 			.EnableSensitiveDataLogging()
-			.EnableDetailedErrors()
-	);
+			.EnableDetailedErrors();
+	}
+});
 
 var app = builder.Build();
 
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");

@@ -1,47 +1,13 @@
 using AziendaAPI.Data;
 using AziendaAPI.Endpoints;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-// builder.Services.AddOpenApiDocument(config =>
-// {
-//     config.DocumentName = "AziendaAPIv1";
-//     config.Title = "AziendaAPI v1";
-//     config.Version = "v1";
-// });
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "AziendaAPIv1";
-	config.Title = "AziendaAPI v1";
-	config.Version = "v1";
-
-	config.PostProcess = document =>
-	  {
-		  var schemasToRename = document.Components.Schemas
-			  .Where(kv => kv.Key.EndsWith("DTO", StringComparison.OrdinalIgnoreCase))
-			  .ToList(); // Creiamo una lista temporanea delle chiavi da rinominare
-
-		  foreach (var schema in schemasToRename)
-		  {
-			  var originalName = schema.Key;
-			  var newName = originalName[..^3];
-
-			  if (!document.Components.Schemas.ContainsKey(newName)) // Evitiamo duplicati
-			  {
-				  document.Components.Schemas.Add(newName, schema.Value);
-			  }
-
-			  document.Components.Schemas.Remove(originalName);
-		  }
-	  };
-});
 //adding services to the container
 if (builder.Environment.IsDevelopment())
 {
@@ -49,34 +15,15 @@ if (builder.Environment.IsDevelopment())
 	builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 }
 var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection");
-// var serverVersion = ServerVersion.AutoDetect(connectionString);
-// builder.Services.AddDbContext<AziendaDbContext>(
-// 		opt => opt.UseMySql(connectionString, serverVersion)
-// 			// The following three options help with debugging, but should
-// 			// be changed or removed for production.
-// 			.LogTo(Console.WriteLine, LogLevel.Information)
-// 			.EnableSensitiveDataLogging()
-// 			.EnableDetailedErrors()
-// 	);
 builder.Services.AddDbContext<AziendaDbContext>(option => option.UseSqlServer(connectionString));
 var app = builder.Build();
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "AziendaAPI v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 using (var serviceScope = app.Services.CreateScope())

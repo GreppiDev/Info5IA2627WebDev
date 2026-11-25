@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using PizzaStoreV3.Data;
 using PizzaStoreV3.Model;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👇 si aggiunga la connection string
@@ -16,19 +17,8 @@ var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "D
 builder.Services.AddOpenApi();
 // builder.Services.AddOpenApi("internal", options => 
 // {
-// 	options.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+// 	options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
 // }); // Document name is internal
-
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration with NSwag
-//questa configurazione è richiesta solo nel caso in cui si voglia il supporto a Swagger tramite NSwag
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv3";
-	config.Title = "PizzaStore v3";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -46,22 +36,11 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	 app.UseOpenApi();
-	//adding web UI for Swagger with NSwag
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v3";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 //Adds a middleware to the pipeline that will catch exceptions, log them, and re-execute
@@ -102,7 +81,7 @@ app.MapGet("/pizzas", async (PizzaDb db) => {
 	return TypedResults.Ok(pizzas);
 	});
 
-var pizzaGroup = app.MapGroup("pizza").WithOpenApi();
+var pizzaGroup = app.MapGroup("pizza");
 pizzaGroup.MapPost("/", async (PizzaDb db,[Description("The pizza to post") ] Pizza pizza) =>
 {
 	db.Pizzas.Add(pizza);
@@ -155,45 +134,15 @@ pizzaGroup.MapDelete("/{id}", async (PizzaDb db, int id) =>
 
 app.MapGet("/extension-methods", () => "Hello world!")
   .WithSummary("This is a summary.")
-  //è possibile usare CommonMark per la descrizione
-  //https://commonmark.org/
-  //https://www.markdownguide.org/
-  //https://markdown-it.github.io/
-  //Per il markdown può essere utile l'uso del nuovo operatore per le stringhe triple quote
-  //https://devblogs.microsoft.com/dotnet/csharp-11-preview-updates/#raw-string-literals
-  //il testo stampato è preso da:
-  //https://github.com/swagger-api/swagger-ui/blob/master/README.md
-  //https://raw.githubusercontent.com/swagger-api/swagger-ui/master/README.md
-  
-  //https://learn.microsoft.com/en-us/dotnet/api/microsoft.openapi.models.openapioperation
-  //https://learn.microsoft.com/en-us/dotnet/api/microsoft.openapi.models.openapioperation.requestbody
-  //The request body applicable for this operation. The requestBody is only supported in HTTP methods where
-  //the HTTP 1.1 specification RFC7231 has explicitly defined semantics for request bodies.
-  //In other cases where the HTTP spec is vague, requestBody SHALL be ignored by consumers.
-
   .WithDescription(
 			"""
-			# <img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SWU-logo-clr.png" width="300">
+			## PizzaStore API
 
-			[![NPM version](https://badge.fury.io/js/swagger-ui.svg)](http://badge.fury.io/js/swagger-ui)
-			[![Build Status](https://jenkins.swagger.io/view/OSS%20-%20JavaScript/job/oss-swagger-ui-master/badge/icon?subject=jenkins%20build)](https://jenkins.swagger.io/view/OSS%20-%20JavaScript/job/oss-swagger-ui-master/)
-			[![npm audit](https://jenkins.swagger.io/buildStatus/icon?job=oss-swagger-ui-security-audit&subject=npm%20audit)](https://jenkins.swagger.io/job/oss-swagger-ui-security-audit/lastBuild/console)
-			![total GitHub contributors](https://img.shields.io/github/contributors-anon/swagger-api/swagger-ui.svg)
+			Restituisce informazioni sullo stato del servizio **PizzaStore**.
 
-			![monthly npm installs](https://img.shields.io/npm/dm/swagger-ui.svg?label=npm%20downloads)
-			![total docker pulls](https://img.shields.io/docker/pulls/swaggerapi/swagger-ui.svg)
-			![monthly packagist installs](https://img.shields.io/packagist/dm/swagger-api/swagger-ui.svg?label=packagist%20installs)
-			![gzip size](https://img.shields.io/bundlephobia/minzip/swagger-ui.svg?label=gzip%20size)
-
-			## Introduction
-			[Swagger UI](https://swagger.io/tools/swagger-ui/) allows anyone — be it your development team or your end consumers — to visualize and interact with the API’s resources without having any of the implementation logic in place. It’s automatically generated from your OpenAPI (formerly known as Swagger) Specification, with the visual documentation making it easy for back end implementation and client side consumption.
-
-			## General
-			**👉🏼 Want to score an easy open-source contribution?** Check out our [Good first issue](https://github.com/swagger-api/swagger-ui/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+first+issue%22) label.
-
-			**🕰️ Looking for the older version of Swagger UI?** Refer to the [*2.x* branch](https://github.com/swagger-api/swagger-ui/tree/2.x).
-			"""
-			).WithOpenApi();
+			- Supporta risposte in formato `text/plain`
+			- Documentazione generata con **OpenAPI** e visualizzata in **Scalar**
+			""");
 //👇 i metadati summary e Description inseriti sull'Endpoint /attributes 
 //sono presenti sia nella documentazione di OpenAPI che in quella di Swagger
 //perché è stato usato il metodo di estensione WithOpenApi

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoApiV2;
 using TodoApiV2.Filters;
 using TodoApiV2.Middlewares;
@@ -13,33 +14,15 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-// adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "TodoApiV2";
-	config.Title = "TodoAPI v2";
-	config.Version = "v1";
-});
 
 //creation of Web application
 var app = builder.Build();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "TodoAPI";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -53,7 +36,7 @@ app.MapGroup("/private/todos")
 //.RequireAuthorization();
 
 //alcuni esempi di rotte con gruppi presi dalla documentazione con qualche adattamento
-var all = app.MapGroup("").WithOpenApi();
+var all = app.MapGroup("");
 var org = all.MapGroup("{org}");
 var user = org.MapGroup("{user}");
 //questa è una GET sulla rotta definita da /{org}/{user}/
