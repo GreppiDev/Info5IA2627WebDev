@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Collections.Concurrent; // Aggiunto per ConcurrentDictionary
 using BasicTokenDemo.Utils;
 using BasicTokenDemo.Models;
+using Scalar.AspNetCore;
 
 // In una applicazione in produzione andrebbero utilizzati meccanismi di memorizzazione più sofisticati
 // In questo esempio didattico non viene gestita l'invalidazione dell'Access Token al logout per semplicità
@@ -21,27 +22,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//aggiunge il servizio che permette ad OpenAPI di leggere i metadati delle API
-builder.Services.AddEndpointsApiExplorer();
-//configura il servizio OpenAPI
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Basic Token v1";
-    config.DocumentName = "Basic Token API";
-    config.Version = "v1";
-
-    // Configurazione dell'autenticazione JWT per Swagger/OpenAPI
-    config.AddSecurity("JWT", [], new NSwag.OpenApiSecurityScheme
-    {
-        Type = NSwag.OpenApiSecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        Description = "Inserisci SOLO il token JWT (senza il prefisso 'Bearer').\nIl prefisso 'Bearer ' viene aggiunto automaticamente."
-    });
-
-    // Applica il requisito di sicurezza a tutti gli endpoint
-    config.OperationProcessors.Add(new NSwag.Generation.Processors.Security.OperationSecurityScopeProcessor("JWT"));
-});
 
 // Configurazione dell'autenticazione tramite JWT
 builder.Services.AddAuthentication(options =>
@@ -142,17 +122,7 @@ if (app.Environment.IsDevelopment())
 {
 
     app.MapOpenApi();
-    //permette a Swagger (NSwag) di generare un file JSON con le specifiche delle API
-    app.UseOpenApi();
-    //permette di configurare l'interfaccia SwaggerUI (l'interfaccia grafica web di Swagger (NSwag) che permette di interagire con le API)
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Basic Token v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-
-    });
+    app.MapScalarApiReference();
 
     app.UseDeveloperExceptionPage();
 }
@@ -265,12 +235,8 @@ app.MapPost("/login", (UserLogin login) =>
     return Results.Unauthorized();
 })
 .WithName("Login")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Effettua il login e ottiene token di accesso";
-    operation.Description = "Autentica l'utente e restituisce access token e refresh token";
-    return operation;
-});
+.WithSummary("Effettua il login e ottiene token di accesso")
+.WithDescription("Autentica l'utente e restituisce access token e refresh token");
 
 // Endpoint protetto, accessibile solo con un token valido
 app.MapGet("/protected", (HttpContext context) =>
@@ -295,12 +261,8 @@ app.MapGet("/protected", (HttpContext context) =>
 })
 .RequireAuthorization()
 .WithName("Protected")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Endpoint protetto ad accesso limitato";
-    operation.Description = "Restituisce informazioni sull'utente autenticato";
-    return operation;
-});
+.WithSummary("Endpoint protetto ad accesso limitato")
+.WithDescription("Restituisce informazioni sull'utente autenticato");
 
 // Endpoint per recuperare le informazioni dell'utente autenticato
 app.MapGet("/user-info", (HttpContext context) =>
@@ -339,12 +301,8 @@ app.MapGet("/user-info", (HttpContext context) =>
 })
 .RequireAuthorization() // Richiede l'autenticazione
 .WithName("UserInfo")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Recupera informazioni sull'utente corrente";
-    operation.Description = "Restituisce i dettagli dell'utente autenticato inclusi ruoli e permessi";
-    return operation;
-});
+.WithSummary("Recupera informazioni sull'utente corrente")
+.WithDescription("Restituisce i dettagli dell'utente autenticato inclusi ruoli e permessi");
 
 // Endpoint protetto, accessibile solo agli amministratori
 app.MapGet("/admin", (HttpContext context) =>
@@ -375,12 +333,8 @@ app.MapGet("/admin", (HttpContext context) =>
 })
 .RequireAuthorization("RequireAdministratorRole") // Richiede la policy specifica
 .WithName("AdminArea")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Area amministrativa riservata";
-    operation.Description = "Questo endpoint è accessibile solo agli utenti con ruolo Administrator";
-    return operation;
-});
+.WithSummary("Area amministrativa riservata")
+.WithDescription("Questo endpoint è accessibile solo agli utenti con ruolo Administrator");
 
 // Endpoint per il rinnovo del token - NON richiede l'autenticazione
 app.MapPost("/refresh", (RefreshRequest request) =>
@@ -454,11 +408,7 @@ app.MapPost("/refresh", (RefreshRequest request) =>
     return Results.Unauthorized();
 })
 .WithName("RefreshToken")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Rinnova l'access token utilizzando un refresh token valido";
-    return operation;
-});
+.WithSummary("Rinnova l'access token utilizzando un refresh token valido");
 
 // Implementazione semplificata dell'endpoint logout che gestisce solo i refresh token
 app.MapPost("/logout", (HttpContext context, LogoutRequest? request) =>
@@ -523,12 +473,8 @@ app.MapPost("/logout", (HttpContext context, LogoutRequest? request) =>
 })
 .RequireAuthorization()
 .WithName("Logout")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Effettua il logout invalidando i refresh token";
-    operation.Description = "Invalida il refresh token dell'utente, forzando un nuovo login per ottenere nuovi token";
-    return operation;
-});
+.WithSummary("Effettua il logout invalidando i refresh token")
+.WithDescription("Invalida il refresh token dell'utente, forzando un nuovo login per ottenere nuovi token");
 
 app.Run();
 

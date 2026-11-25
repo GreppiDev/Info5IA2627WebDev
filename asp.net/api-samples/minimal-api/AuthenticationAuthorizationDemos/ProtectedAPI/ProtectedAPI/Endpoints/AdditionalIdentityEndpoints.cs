@@ -4,8 +4,6 @@ using ProtectedAPI.Model;
 using ProtectedAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Any;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authentication;
@@ -150,13 +148,9 @@ public static class AdditionalIdentityEndpoints
         })
         .RequireAuthorization() // Richiede autenticazione per accedere a questo endpoint
         .WithName("Logout")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Log out";
-            operation.Description = "Signs out the current user. For token-based auth, invalidates the tokens by updating the security stamp (requires token in Authorization header). For cookie-based auth, clears the authentication cookie.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-            return operation;
-        });
+        .WithSummary("Log out")
+        .WithDescription("Signs out the current user. For token-based auth, invalidates the tokens by updating the security stamp (requires token in Authorization header). For cookie-based auth, clears the authentication cookie.")
+        .WithTags("Additional Identity Endpoints");
 
         // GDPR Data Export endpoint (for authenticated users to export their own data)
         app.MapGet("/gdpr/export-personal-data", async (
@@ -240,13 +234,9 @@ public static class AdditionalIdentityEndpoints
         .RequireAuthorization()
         .ValidateSecurityStamp()
         .WithName("ExportPersonalData")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Export personal data (GDPR)";
-            operation.Description = "Exports all personal data associated with the current user in compliance with GDPR right to data portability.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "GDPR Compliance" } };
-            return operation;
-        });
+        .WithSummary("Export personal data (GDPR)")
+        .WithDescription("Exports all personal data associated with the current user in compliance with GDPR right to data portability.")
+        .WithTags("GDPR Compliance");
 
         // GDPR Delete Account endpoint (for authenticated users to delete their own account)
         app.MapDelete("/gdpr/delete-account", async (
@@ -345,13 +335,9 @@ public static class AdditionalIdentityEndpoints
         .RequireAuthorization()
         .ValidateSecurityStamp()
         .WithName("DeletePersonalAccount")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Delete account and personal data (GDPR)";
-            operation.Description = "Permanently deletes the user's account and all associated personal data in compliance with GDPR right to erasure ('right to be forgotten').";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "GDPR Compliance" } };
-            return operation;
-        });
+        .WithSummary("Delete account and personal data (GDPR)")
+        .WithDescription("Permanently deletes the user's account and all associated personal data in compliance with GDPR right to erasure ('right to be forgotten').")
+        .WithTags("GDPR Compliance");
 
         // Delete user endpoint (Admin only)
         app.MapDelete("/users/delete", async (
@@ -381,13 +367,9 @@ public static class AdditionalIdentityEndpoints
         .RequireAuthorization("RequireAdminRole")
         .ValidateSecurityStamp()
         .WithName("DeleteUser")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Delete user";
-            operation.Description = "Deletes a user and all associated roles. Only accessible by administrators.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-            return operation;
-        });
+        .WithSummary("Delete user")
+        .WithDescription("Deletes a user and all associated roles. Only accessible by administrators.")
+        .WithTags("Additional Identity Endpoints");
 
         // Add role to user endpoint (Admin only)
         app.MapPost("/users/add-role", async (
@@ -434,13 +416,9 @@ public static class AdditionalIdentityEndpoints
         .RequireAuthorization("RequireAdminRole")
         .ValidateSecurityStamp()
         .WithName("AddRoleToUser")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Add role to user";
-            operation.Description = "Adds a role to an existing user. Only accessible by administrators.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-            return operation;
-        });
+        .WithSummary("Add role to user")
+        .WithDescription("Adds a role to an existing user. Only accessible by administrators.")
+        .WithTags("Additional Identity Endpoints");
 
         // Remove role from user endpoint (Admin only)
         app.MapPost("/users/remove-role", async (
@@ -487,13 +465,9 @@ public static class AdditionalIdentityEndpoints
         .RequireAuthorization("RequireAdminRole")
         .ValidateSecurityStamp()
         .WithName("RemoveRoleFromUser")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Remove role from user";
-            operation.Description = "Removes a role from an existing user. Only accessible by administrators.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-            return operation;
-        });
+        .WithSummary("Remove role from user")
+        .WithDescription("Removes a role from an existing user. Only accessible by administrators.")
+        .WithTags("Additional Identity Endpoints");
 
         // Custom registration with role (only for Admin)
         app.MapPost("/users/register-with-role", async (
@@ -562,18 +536,13 @@ public static class AdditionalIdentityEndpoints
         })
         .RequireAuthorization("RequireAdminRole")
         .WithName("RegisterWithRole")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Register a new user with role";
-            operation.Description = """
-                Creates a new user account and assigns the specified role. Only accessible by administrators.
-                The role must be either 'Member' or 'Admin'. If role is not provided no role is assigned to the user. If email confirmation is required, a confirmation email will be sent.
-                Returns a validation problem if the registration fails or if the role is invalid.
-                """;
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-
-            return operation;
-        });
+        .WithSummary("Register a new user with role")
+        .WithDescription("""
+            Creates a new user account and assigns the specified role. Only accessible by administrators.
+            The role must be either 'Member' or 'Admin'. If role is not provided no role is assigned to the user. If email confirmation is required, a confirmation email will be sent.
+            Returns a validation problem if the registration fails or if the role is invalid.
+            """)
+        .WithTags("Additional Identity Endpoints");
 
         // External login provider endpoint
         app.MapPost("/login/{provider}", (
@@ -587,18 +556,13 @@ public static class AdditionalIdentityEndpoints
             return TypedResults.Challenge(properties, new[] { provider });
         })
         .WithName("ExternalLogin")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Login with external provider";
-            operation.Description = """
-                Initiates login flow with an external authentication provider (like Google, Facebook, etc.).
-                The {provider} parameter specifies which authentication provider to use.
-                The optional returnUrl query parameter specifies where to redirect after successful authentication.
-                """;
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-
-            return operation;
-        });
+        .WithSummary("Login with external provider")
+        .WithDescription("""
+            Initiates login flow with an external authentication provider (like Google, Facebook, etc.).
+            The {provider} parameter specifies which authentication provider to use.
+            The optional returnUrl query parameter specifies where to redirect after successful authentication.
+            """)
+        .WithTags("Additional Identity Endpoints");
 
         // External login callback endpoint
         app.MapGet("/login/{provider}/callback", async (
@@ -677,19 +641,14 @@ public static class AdditionalIdentityEndpoints
             });
         })
         .WithName("ExternalLoginCallback")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "External login callback";
-            operation.Description = """
-                Handles the callback from external authentication providers.
-                This endpoint is called by the external provider after the user has authenticated.
-                If the user doesn't have an account, one will be created using their email from the external provider.
-                After successful authentication, redirects to the specified returnUrl or the default page.
-                """;
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-
-            return operation;
-        });
+        .WithSummary("External login callback")
+        .WithDescription("""
+            Handles the callback from external authentication providers.
+            This endpoint is called by the external provider after the user has authenticated.
+            If the user doesn't have an account, one will be created using their email from the external provider.
+            After successful authentication, redirects to the specified returnUrl or the default page.
+            """)
+        .WithTags("Additional Identity Endpoints");
 
         // Setup 2FA endpoint
         app.MapGet("/login/setup-2fa", async (
@@ -729,12 +688,8 @@ public static class AdditionalIdentityEndpoints
         })
         .RequireAuthorization()
         .WithName("Setup2FA")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Setup two-factor authentication";
-            operation.Description = "Gets the information needed to setup two-factor authentication with an authenticator app.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Additional Identity Endpoints" } };
-            return operation;
-        });
+        .WithSummary("Setup two-factor authentication")
+        .WithDescription("Gets the information needed to setup two-factor authentication with an authenticator app.")
+        .WithTags("Additional Identity Endpoints");
     }
 }

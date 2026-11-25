@@ -9,8 +9,6 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.OpenApi.Models;
-using Microsoft.OpenApi.Any;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
@@ -121,13 +119,9 @@ public static class CustomIdentityEndpoints
             });
         })
         .WithName("Login")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Log in with email and password";
-            operation.Description = "Signs in a user using their email and password. Supports both cookie and token-based authentication.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Log in with email and password")
+        .WithDescription("Signs in a user using their email and password. Supports both cookie and token-based authentication.")
+        .WithTags("Identity");
 
         // Refresh token endpoint
         app.MapPost("/refresh", async (
@@ -210,13 +204,9 @@ public static class CustomIdentityEndpoints
             });
         })
         .WithName("Refresh")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Refresh access token";
-            operation.Description = "Exchanges a valid refresh token for a new access token and refresh token pair.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Refresh access token")
+        .WithDescription("Exchanges a valid refresh token for a new access token and refresh token pair.")
+        .WithTags("Identity");
 
         // Register endpoint
         app.MapPost("/register", async (
@@ -254,13 +244,9 @@ public static class CustomIdentityEndpoints
             return Results.Ok(new { RequiresConfirmation = false, Message = "Registration successful." });
         })
         .WithName("Register")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Register a new user";
-            operation.Description = "Creates a new user account. May require email confirmation based on settings.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Register a new user")
+        .WithDescription("Creates a new user account. May require email confirmation based on settings.")
+        .WithTags("Identity");
 
         // Email confirmation endpoint
         app.MapGet("/confirmEmail", async (
@@ -291,19 +277,9 @@ public static class CustomIdentityEndpoints
             return Results.Ok("Email confirmed successfully.");
         })
         .WithName("ConfirmEmail")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Confirm email address";
-            operation.Description = "Confirms a user's email address using the token sent via email.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            operation.Parameters[0].Description = "The user ID";
-            operation.Parameters[0].Example = new OpenApiString("123");
-            operation.Parameters[1].Description = "The confirmation code sent via email";
-            operation.Parameters[1].Example = new OpenApiString("string");
-            operation.Parameters[2].Description = "Whether this is confirming a changed email address";
-            operation.Parameters[2].Example = new OpenApiString("true");
-            return operation;
-        });
+        .WithSummary("Confirm email address")
+        .WithDescription("Confirms a user's email address using the token sent via email.")
+        .WithTags("Identity");
 
         // Resend email confirmation endpoint
         app.MapPost("/resendConfirmationEmail", async (
@@ -331,13 +307,9 @@ public static class CustomIdentityEndpoints
             return Results.Ok("If your email is registered, you will receive a confirmation email.");
         })
         .WithName("ResendConfirmationEmail")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Resend email confirmation";
-            operation.Description = "Resends the email confirmation link to the user's email address.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Resend email confirmation")
+        .WithDescription("Resends the email confirmation link to the user's email address.")
+        .WithTags("Identity");
 
         // Password reset request endpoint
         app.MapPost("/forgotPassword", async (
@@ -360,13 +332,9 @@ public static class CustomIdentityEndpoints
             return Results.Ok("If your email is registered, you will receive a password reset link.");
         })
         .WithName("ForgotPassword")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Request password reset";
-            operation.Description = "Sends a password reset link to the user's email address.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Request password reset")
+        .WithDescription("Sends a password reset link to the user's email address.")
+        .WithTags("Identity");
 
         // Reset password endpoint
         app.MapPost("/resetPassword", async (
@@ -391,13 +359,9 @@ public static class CustomIdentityEndpoints
             return Results.Ok("Password has been reset.");
         })
         .WithName("ResetPassword")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Reset password";
-            operation.Description = "Resets a user's password using the reset code sent via email.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Reset password")
+        .WithDescription("Resets a user's password using the reset code sent via email.")
+        .WithTags("Identity");
 
         // Get user info endpoint
         app.MapGet("/manage/info", async (
@@ -422,13 +386,9 @@ public static class CustomIdentityEndpoints
         .RequireAuthorization()
         .ValidateSecurityStamp()
         .WithName("GetManageInfo")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Get user information";
-            operation.Description = "Gets the current user's profile information.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Get user information")
+        .WithDescription("Gets the current user's profile information.")
+        .WithTags("Identity");
 
         // Update user info endpoint
         app.MapPost("/manage/info", async (
@@ -477,13 +437,9 @@ public static class CustomIdentityEndpoints
         .RequireAuthorization()
         .ValidateSecurityStamp()
         .WithName("UpdateManageInfo")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Update user information";
-            operation.Description = "Updates the current user's profile information.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Update user information")
+        .WithDescription("Updates the current user's profile information.")
+        .WithTags("Identity");
 
         app.MapPost("/manage/2fa", async (
             HttpContext context,
@@ -537,13 +493,9 @@ public static class CustomIdentityEndpoints
         .RequireAuthorization()
         .ValidateSecurityStamp()
         .WithName("Manage2FA")
-        .WithOpenApi(operation =>
-        {
-            operation.Summary = "Manage two-factor authentication";
-            operation.Description = "Enable, disable, or configure two-factor authentication settings.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Identity" } };
-            return operation;
-        });
+        .WithSummary("Manage two-factor authentication")
+        .WithDescription("Enable, disable, or configure two-factor authentication settings.")
+        .WithTags("Identity");
 
         // NOTA: L'endpoint di logout è stato rimosso perché esiste già un'implementazione completa
         // in AdditionalIdentityEndpoints.cs che gestisce correttamente sia l'autenticazione con cookie che con token JWT

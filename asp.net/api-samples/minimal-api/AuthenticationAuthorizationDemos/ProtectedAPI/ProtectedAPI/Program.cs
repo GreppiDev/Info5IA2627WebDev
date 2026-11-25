@@ -5,8 +5,7 @@ using ProtectedAPI.Model;
 using ProtectedAPI.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.OpenApi.Models;
-using NSwag.Generation.Processors.Security;
+using Scalar.AspNetCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
@@ -21,27 +20,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-
-// Configure OpenAPI/Swagger
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.Title = "ProtectedAPI v1";
-	config.DocumentName = "v1";
-	config.Version = "v1";
-
-	// Utilizzo dello schema Http per la sicurezza JWT
-	config.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
-	{
-		Type = NSwag.OpenApiSecuritySchemeType.Http,
-		Scheme = "Bearer",
-		BearerFormat = "JWT",
-		Description = "Inserisci il token JWT (senza il prefisso 'Bearer')"
-	});
-
-	// Utilizza l'OperationProcessor standard per aggiungere i requisiti di sicurezza
-	config.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("Bearer"));
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -49,14 +27,23 @@ if (builder.Environment.IsDevelopment())
 }
 
 var connectionString = builder.Configuration.GetConnectionString("ProtectedAPIConnection");
-var serverVersion = ServerVersion.AutoDetect(connectionString);
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 
-builder.Services.AddDbContext<AppDbContext>(
-	opt => opt.UseMySql(connectionString, serverVersion)
-	.LogTo(Console.WriteLine, LogLevel.Information)
-	.EnableSensitiveDataLogging()
-	.EnableDetailedErrors()
-);
+builder.Services.AddDbContext<AppDbContext>(opt =>
+{
+	opt.UseMySql(connectionString, serverVersion);
+	if (builder.Environment.IsDevelopment())
+	{
+		opt.LogTo(Console.WriteLine, LogLevel.Information)
+			.EnableSensitiveDataLogging()
+			.EnableDetailedErrors();
+	}
+});
 
 // Create a logger factory and logger for configuration
 using var configLoggerFactory = LoggerFactory.Create(logging =>
@@ -494,14 +481,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
 	app.MapOpenApi();
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "ProtectedAPI v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 	app.UseDeveloperExceptionPage();
 }
 
@@ -518,7 +498,7 @@ if (identitySettings?.UseCustomIdentityEndpoints ?? false)
 else
 {
 	// Use standard Identity endpoints 
-	app.MapIdentityApi<ApplicationUser>().WithOpenApi().WithTags("Identity");
+	app.MapIdentityApi<ApplicationUser>().WithTags("Identity");
 }
 
 // Map additional endpoints that don't conflict with either implementation
@@ -533,7 +513,7 @@ using (var scope = app.Services.CreateScope())
 	);
 }
 
-app.MapGroup("/api").MapTodoEndpoints().WithOpenApi().WithTags("Todos API");
+app.MapGroup("/api").MapTodoEndpoints().WithTags("Todos API");
 
 app.Run();
 

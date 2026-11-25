@@ -5,18 +5,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using BackendApp.Models;
 using BackendApp.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-    {
-        config.Title = "Auth Cookie Demo Backend v1";
-        config.DocumentName = "Auth Cookie Demo Backend API";
-        config.Version = "v1";
-    }
-);
 
 if (builder.Environment.IsDevelopment())
 {
@@ -24,13 +17,22 @@ if (builder.Environment.IsDevelopment())
 }
 
 var connectionString = builder.Configuration.GetConnectionString("DemoDbConnection");
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContext<AppDbContext>(opt => opt
-    .UseMySql(connectionString, serverVersion)
-    .LogTo(Console.WriteLine, LogLevel.Information)
-    .EnableSensitiveDataLogging()
-    .EnableDetailedErrors()
-);
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
+builder.Services.AddDbContext<AppDbContext>(opt =>
+{
+    opt.UseMySql(connectionString, serverVersion);
+    if (builder.Environment.IsDevelopment())
+    {
+        opt.LogTo(Console.WriteLine, LogLevel.Information)
+           .EnableSensitiveDataLogging()
+           .EnableDetailedErrors();
+    }
+});
 
 // Configurazione CORS - deve essere prima di AddAuthentication
 builder.Services.AddCors(options =>
@@ -124,14 +126,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.MapOpenApi();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Auth Cookie Demo v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapScalarApiReference();
 }
 
 // Poi CORS - deve essere prima di Authentication e Authorization

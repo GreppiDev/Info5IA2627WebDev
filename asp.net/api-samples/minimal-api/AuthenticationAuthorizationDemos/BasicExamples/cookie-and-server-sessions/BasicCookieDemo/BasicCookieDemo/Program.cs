@@ -3,22 +3,13 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies; //aggiunge il supporto per l'autenticazione tramite cookie
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//aggiunge il servizio che permette ad OpenAPI di leggere i metadati delle API
-builder.Services.AddEndpointsApiExplorer();
-//configura il servizio OpenAPI
-builder.Services.AddOpenApiDocument(config =>
-    {
-        config.Title = "Basic Cookie v1";
-        config.DocumentName = "Basic Cookie API";
-        config.Version = "v1";
-    }
-);
 
 
 // Configurazione dell'autenticazione con cookie usando lo schema predefinito
@@ -123,16 +114,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    //permette a Swagger (NSwag) di generare un file JSON con le specifiche delle API
-    app.UseOpenApi();
-    //permette di configurare l'interfaccia SwaggerUI (l'interfaccia grafica web di Swagger (NSwag) che permette di interagire con le API)
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Basic Cookie v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapScalarApiReference();
 
     app.UseDeveloperExceptionPage();
 }
