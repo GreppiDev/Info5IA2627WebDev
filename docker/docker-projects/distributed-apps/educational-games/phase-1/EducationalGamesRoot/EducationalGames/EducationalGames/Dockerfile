@@ -1,11 +1,11 @@
 # Stage base: Eseguito come root per permettere all'entrypoint di sistemare i permessi.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 # NOTA: Non impostare 'USER app' qui; la logica dell'entrypoint incorporata gestirà il cambio utente.
 
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 ARG configuration=Release
 WORKDIR /src
 COPY ["EducationalGames.csproj", "./"]

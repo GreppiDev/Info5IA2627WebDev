@@ -34,7 +34,7 @@ namespace EducationalGames.Models
         public string? Immagine3 { get; set; }
 
         // Assuming JSON maps to string for broader compatibility initially.
-        // Specific DB providers (like Pomelo.EFCore.MySql) might offer better JSON support.
+        // Specific DB providers (like Microting.EntityFrameworkCore.MySql) might offer better JSON support.
         [Column("DefinizioneGioco", TypeName = "json")] // Or TEXT if JSON type is not supported/desired
         public string? DefinizioneGioco { get; set; }
 

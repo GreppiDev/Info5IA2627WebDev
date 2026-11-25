@@ -1,7 +1,7 @@
 # ===== STAGE 1: BASE =====
-# Immagine di runtime ASP.NET Core 9.0 per la fase finale
+# Immagine di runtime ASP.NET Core 11.0 per la fase finale
 # Questa sarà l'immagine base per l'esecuzione dell'applicazione
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 
 # Definisci un argomento di build per la porta, con un valore di default
 ARG APP_INTERNAL_PORT_ARG=8080
@@ -18,8 +18,8 @@ EXPOSE ${APP_INTERNAL_PORT_ARG}
 USER app
 
 # ===== STAGE 2: BUILD =====
-# Immagine SDK .NET 9.0 per la compilazione, supporta multi-platform
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# Immagine SDK .NET 11.0 per la compilazione, supporta multi-platform
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 
 # Parametro per specificare la configurazione di build (default: Release)
 ARG configuration=Release

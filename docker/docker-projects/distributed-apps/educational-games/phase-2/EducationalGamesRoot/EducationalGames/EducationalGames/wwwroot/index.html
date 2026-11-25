@@ -190,9 +190,12 @@
                                         database relazionale. Come si evince dalla configurazione in
                                         <code>Program.cs</code>, il database utilizzato è MariaDB (compatibile con
                                         MySQL), a cui l'applicazione si connette tramite il provider
-                                        <code>Pomelo.EntityFrameworkCore.MySql</code>. La stringa di connessione è letta
-                                        da <code>appsettings.json</code> e la versione del server viene rilevata
-                                        automaticamente (<code>ServerVersion.AutoDetect(connectionString)</code>). Le
+                                        <code>Microting.EntityFrameworkCore.MySql</code> (proseguimento ufficiale di
+                                        Pomelo per EF Core 10/11). La stringa di connessione è letta da
+                                        <code>appsettings.json</code> e la versione di MariaDB è configurata
+                                        esplicitamente con <code>MariaDbServerVersion</code> (con
+                                        <code>ServerVersion.AutoDetect(connectionString)</code> lasciato come
+                                        alternativa commentata in <code>Program.cs</code>). Le
                                         modifiche allo schema del database sono gestite tramite le Migrazioni di EF Core
                                         (i file si trovano nella cartella <code>Migrations</code>), che permettono di
                                         applicare aggiornamenti incrementali e controllati allo schema del database

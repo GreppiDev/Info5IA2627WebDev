@@ -1,7 +1,7 @@
 # ===== STAGE 1: BASE =====
-# Immagine di runtime ASP.NET Core 9.0 per la fase finale
+# Immagine di runtime ASP.NET Core 11.0 per la fase finale
 # Questa sarà l'immagine base per l'esecuzione dell'applicazione
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 
 # Imposta la directory di lavoro dove verrà eseguita l'app
 WORKDIR /app
@@ -17,8 +17,8 @@ ENV ASPNETCORE_URLS=http://+:8080
 USER app
 
 # ===== STAGE 2: BUILD =====
-# Immagine SDK .NET 9.0 per la compilazione, supporta multi-platform
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+# Immagine SDK .NET 11.0 per la compilazione, supporta multi-platform
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 
 # Parametro per specificare la configurazione di build (default: Release)
 ARG configuration=Release

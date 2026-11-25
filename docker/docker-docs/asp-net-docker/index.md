@@ -337,13 +337,13 @@ Si procederà ora alla creazione di un semplice progetto ASP.NET Core utilizzand
     <Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
     </ItemGroup>
 
     </Project>
@@ -826,7 +826,7 @@ Si creerà ora un `Dockerfile` per l'applicazione `MyWebApiApp` utilizzando un a
 # Fase 1: Build (SDK Stage)
 # Utilizza l'immagine ufficiale dell'SDK .NET 9.0 come base.
 # Scegliere una versione specifica dell'SDK è una buona pratica per build riproducibili.
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build-env
 WORKDIR /app
 
 # Copia i file .csproj e ripristina le dipendenze come primo passo.
@@ -846,7 +846,7 @@ RUN dotnet publish -c Release -o out
 # Fase 2: Runtime (Final Stage)
 # Utilizza l'immagine ufficiale del runtime ASP.NET Core 9.0, che è più leggera dell'SDK.
 # Assicurarsi che la versione del runtime corrisponda a quella usata per la build.
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 WORKDIR /app
 
 # Copia gli artefatti pubblicati dalla fase di build ('build-env') nell'immagine finale.
@@ -872,7 +872,7 @@ ENTRYPOINT ["dotnet", "MyWebApiApp.dll"]
 
 ##### `FROM`
 
-- `FROM <image>:<tag> AS <stage_name>`: Specifica l'immagine base da cui partire. `mcr.microsoft.com/dotnet/sdk:8.0` è l'immagine ufficiale Microsoft che contiene l'.NET 8 SDK. `AS build-env` assegna un nome (`build-env`) a questa fase, che può essere referenziato successivamente (es. in `COPY --from=build-env`).
+- `FROM <image>:<tag> AS <stage_name>`: Specifica l'immagine base da cui partire. `mcr.microsoft.com/dotnet/sdk:11.0` è l'immagine ufficiale Microsoft che contiene il .NET 11 SDK. `AS build-env` assegna un nome (`build-env`) a questa fase, che può essere referenziato successivamente (es. in `COPY --from=build-env`).
 
 ##### `WORKDIR`
 
@@ -2002,7 +2002,7 @@ Questi `Dockerfile` generati automaticamente sono un buon punto di partenza e sp
     # ===== STAGE 1: BASE =====
     # Immagine di runtime ASP.NET Core 9.0 per la fase finale
     # Questa sarà l'immagine base per l'esecuzione dell'applicazione
-    FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+    FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 
     # Imposta la directory di lavoro dove verrà eseguita l'app
     WORKDIR /app
@@ -2019,7 +2019,7 @@ Questi `Dockerfile` generati automaticamente sono un buon punto di partenza e sp
 
     # ===== STAGE 2: BUILD =====
     # Immagine SDK .NET 9.0 per la compilazione, supporta multi-platform
-    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 
     # Parametro per specificare la configurazione di build (default: Release)
     ARG configuration=Release
@@ -2151,7 +2151,7 @@ Questi `Dockerfile` generati automaticamente sono un buon punto di partenza e sp
 - **STAGE 1: BASE**
 
     ```dockerfile
-    FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+    FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
     ```
 
     - **Cosa fa**: Scarica l'immagine runtime ASP.NET Core 9.0 e la etichetta come "base"
@@ -2193,7 +2193,7 @@ Questi `Dockerfile` generati automaticamente sono un buon punto di partenza e sp
 - **STAGE 2: BUILD**
 
     ```dockerfile
-    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
     ```
 
     - **Cosa fa**: Scarica l'SDK .NET 9.0 supportando build cross-platform
@@ -2296,15 +2296,15 @@ Questi `Dockerfile` generati automaticamente sono un buon punto di partenza e sp
 - **DOCKERFILE SEMPLICE (2 Stage)**
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build-env  # Build
-FROM mcr.microsoft.com/dotnet/aspnet:9.0           # Runtime
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build-env  # Build
+FROM mcr.microsoft.com/dotnet/aspnet:11.0           # Runtime
 ```
 
 - **DOCKERFILE COMPLESSO (4 Stage)**
 
 ```dockerfile
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base      # Base runtime
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build       # Build
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base      # Base runtime
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build       # Build
 FROM build AS publish                                 # Publish
 FROM base AS final                                    # Final
 ```
@@ -2423,7 +2423,7 @@ Nel `Dockerfile` complesso, ci sono due passaggi che sembrano simili:
 
     ```Dockerfile
     # ===== STAGE 1: BASE =====
-    FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+    FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
     ARG APP_INTERNAL_PORT_ARG=8080
     WORKDIR /app
     ENV ASPNETCORE_URLS=http://+:${APP_INTERNAL_PORT_ARG}
@@ -2431,7 +2431,7 @@ Nel `Dockerfile` complesso, ci sono due passaggi che sembrano simili:
     USER app
 
     # ===== STAGE 2: SDK_OPERATIONS (per restore, build e publish) =====
-    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS sdk_operations
+    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS sdk_operations
     ARG configuration=Release
     WORKDIR /src
 
@@ -2518,7 +2518,7 @@ docker push IL_PROPRIO_NOME_UTENTE_DOCKERHUB/mywebapiapp-sdkpublished:1.0
 Per specificare un runtime diverso da quello di default per la creazione dell'immagine Docker è possibile utilizzare un'immagine "chiseled" che è ottimizzata per un determinato sistema operativo. Le immagini "chiseled" sono discusse nella [documentazione ufficiale Microsoft](https://learn.microsoft.com/en-us/dotnet/core/docker/container-images). A titolo di esempio, per trovare le immagini "chiseled" per .NET 9.0 si può cercare sulla pagina [dotnet di Docker Hub](https://hub.docker.com/r/microsoft/dotnet) e poi cercare nei "Featured Repos" quello per ["ASP.NET Core Runtime"](https://github.com/dotnet/dotnet-docker/blob/main/README.aspnet.md). Ad esempio per creare da riga di comando una versione "chiseled" dell'immagine dell'applicazione MyWebApiWeb l'istruzione è:
 
 ```sh
-dotnet publish -c Release --os linux --arch x64 /t:PublishContainer -p:ContainerRepository=mywebapiapp-sdkpublished-chiseled -p:ContainerBaseImage=mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled -p:ContainerImageTag=1.0
+dotnet publish -c Release --os linux --arch x64 /t:PublishContainer -p:ContainerRepository=mywebapiapp-sdkpublished-chiseled -p:ContainerBaseImage=mcr.microsoft.com/dotnet/aspnet:11.0-noble-chiseled -p:ContainerImageTag=1.0
 ```
 
 #### 4.1.3 Configurazione del `dotnet publish` tramite file `.csproj`
@@ -2530,17 +2530,17 @@ Aggiungere o modificare il PropertyGroup nel file `MyWebApiApp.csproj`:
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ContainerRepository>mywebapiapp-sdkpublished-csproj-standard</ContainerRepository>
     <ContainerImageTag>1.0.0</ContainerImageTag>
 
-    <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled</ContainerBaseImage> -->
+    <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0-noble-chiseled</ContainerBaseImage> -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
   </ItemGroup>
 </Project>
 
@@ -2570,18 +2570,18 @@ A partire da .NET 8 sono state introdotte immagini base "chiseled" per Ubuntu, c
     ```xml
     <ProjectSdk="Microsoft.NET.Sdk.Web">
         <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
 
-        <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled</ContainerBaseImage> -->
+        <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0-noble-chiseled</ContainerBaseImage> -->
         <ContainerImageTag>1.0.0</ContainerImageTag> 
         <ContainerRegistry>docker.io</ContainerRegistry> 
         <ContainerRepository>IL_PROPRIO_NOME_UTENTE_DOCKERHUB/mywebapiapp-sdkpublished-csproj</ContainerRepository>
         </PropertyGroup>
 
         <ItemGroup>
-            <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.3.24172.13" />
+            <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
         </ItemGroup>
     </Project>
 
@@ -2604,16 +2604,16 @@ A partire da .NET 8 sono state introdotte immagini base "chiseled" per Ubuntu, c
     Aggiungere/modificare queste righe nel `PropertyGroup` del proprio file `.csproj`:
 
     ```xml
-    <ProjectSdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramework>net9.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
+    <ProjectSdk="Microsoft.NET.Sdk.Web"><PropertyGroup><TargetFramework>net11.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
 
-        <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled</ContainerBaseImage> -->
+        <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0-noble-chiseled</ContainerBaseImage> -->
         <ContainerImageTag>1.0.0</ContainerImageTag> 
         <ContainerRegistry>NOME_DEL_PROPRIO_ACR.azurecr.io</ContainerRegistry>
         <ContainerRepository>mywebapiapp-sdkpublished-csproj</ContainerRepository>
         </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0-preview.3.24172.13" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
         </ItemGroup>
     </Project>
     ```
@@ -2719,17 +2719,17 @@ XML
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- <ContainerRepository>mywebapiapp-sdkpublished-csproj-standard</ContainerRepository>
     <ContainerImageTag>1.0.0</ContainerImageTag> -->
 
-    <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:9.0-noble-chiseled</ContainerBaseImage> -->
+    <!-- <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:11.0-noble-chiseled</ContainerBaseImage> -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
   </ItemGroup>
 </Project>
 ```
@@ -3109,8 +3109,8 @@ Questi due scenari richiedono stringhe di connessione diverse.
     - `Database=mywebapiappdb`: Il nome del database.
     - `Uid=mywebapiappuser`: L'utente per la connessione.
     - `Pwd=userPassword456`: La password per l'utente.
-    - `AllowPublicKeyRetrieval=true`: Parametro spesso necessario per il provider EF Core per MariaDB/MySQL (`Pomelo.EntityFrameworkCore.MySql`) se SSL non è configurato in modo restrittivo.
-2. **Aggiungere i pacchetti NuGet per Entity Framework Core e il provider MariaDB/MySQL a `MyWebApiApp`**: Per utilizzare EF Core con MariaDB, è necessario il pacchetto EF Core principale, gli strumenti e un provider di database specifico. `Pomelo.EntityFrameworkCore.MySql` è un provider popolare e ben mantenuto.
+    - `AllowPublicKeyRetrieval=true`: Parametro spesso necessario per il provider EF Core per MariaDB/MySQL (`Microting.EntityFrameworkCore.MySql`) se SSL non è configurato in modo restrittivo.
+2. **Aggiungere i pacchetti NuGet per Entity Framework Core e il provider MariaDB/MySQL a `MyWebApiApp`**: Per utilizzare EF Core con MariaDB, è necessario il pacchetto EF Core principale, gli strumenti e un provider di database specifico. Su .NET 11 si usa `Microting.EntityFrameworkCore.MySql` (proseguimento ufficiale dello storico `Pomelo.EntityFrameworkCore.MySql`, fermo a EF Core 9, con identiche API e namespace).
 
     Aprire un terminale nella directory `MyWebApiApp/` ed eseguire i seguenti comandi:
 
@@ -3119,7 +3119,7 @@ Questi due scenari richiedono stringhe di connessione diverse.
     ```sh
     dotnet add package Microsoft.EntityFrameworkCore
     dotnet add Microsoft.EntityFrameworkCore.Design
-    dotnet add package Pomelo.EntityFrameworkCore.MySql --version 9.0.0-preview.3.efcore.9.0.0
+    dotnet add package Microting.EntityFrameworkCore.MySql
     ```
 
     Questo aggiungerà i riferimenti ai pacchetti nel file `MyWebApiApp.csproj`.
@@ -3228,8 +3228,14 @@ Questi due scenari richiedono stringhe di connessione diverse.
       var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
       // 2. Aggiungi AppDbContext ai servizi, configurandolo per usare MariaDB/MySQL
+      // Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+      // Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+      // al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+      var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+      // In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+      // var serverVersion = ServerVersion.AutoDetect(connectionString);
       builder.Services.AddDbContext<AppDbContext>(options =>
-          options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+          options.UseMySql(connectionString, serverVersion)
       );
 
       var app = builder.Build();
@@ -3301,7 +3307,7 @@ Questi due scenari richiedono stringhe di connessione diverse.
               sb.AppendLine("1. Che il container 'mariadb-container' sia in esecuzione e sulla stessa rete Docker.");
               sb.AppendLine("2. Che il nome del server ('mariadb-container') e le credenziali nella connection string siano corretti.");
               sb.AppendLine("3. Che il database specificato esista e l'utente abbia i permessi.");
-              sb.AppendLine("4. Che il provider Pomelo.EntityFrameworkCore.MySql sia configurato correttamente.");
+              sb.AppendLine("4. Che il provider Microting.EntityFrameworkCore.MySql sia configurato correttamente.");
           }
           return Results.Text(sb.ToString());
       });
@@ -4314,7 +4320,7 @@ MyProjectRoot/
     # ===== STAGE 1: BASE =====
     # Immagine di runtime ASP.NET Core 9.0 per la fase finale
     # Questa sarà l'immagine base per l'esecuzione dell'applicazione
-    FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
+    FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS base
 
     # Imposta la directory di lavoro dove verrà eseguita l'app
     WORKDIR /app
@@ -4331,7 +4337,7 @@ MyProjectRoot/
 
     # ===== STAGE 2: BUILD =====
     # Immagine SDK .NET 9.0 per la compilazione, supporta multi-platform
-    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+    FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 
     # Parametro per specificare la configurazione di build (default: Release)
     ARG configuration=Release
@@ -5005,7 +5011,7 @@ Finora, per semplicità, si è utilizzata la comunicazione HTTP. In produzione (
     - Richiede:
         - Ottenere un certificato SSL/TLS valido (es. da un'autorità di certificazione come Let's Encrypt, o un certificato autofirmato per sviluppo).
         - Montare il file del certificato (es. `.pfx`) e la sua password (se protetto) all'interno del container in modo sicuro (es. tramite Docker Secrets o volumi sicuri).
-        - Configurare Kestrel in `Program.cs` o tramite `appsettings.json`/variabili d'ambiente per utilizzare il certificato e ascoltare su una porta HTTPS (es. 443 o 8081 nel container). L'immagine base `mcr.microsoft.com/dotnet/aspnet:8.0` ascolta su HTTP (8080) e HTTPS (8081) di default, ma necessita che il certificato di sviluppo sia disponibile e trustato, o un certificato di produzione fornito.
+        - Configurare Kestrel in `Program.cs` o tramite `appsettings.json`/variabili d'ambiente per utilizzare il certificato e ascoltare su una porta HTTPS (es. 443 o 8081 nel container). L'immagine base `mcr.microsoft.com/dotnet/aspnet:11.0` ascolta su HTTP (8080) e HTTPS (8081) di default, ma necessita che il certificato di sviluppo sia disponibile e trustato, o un certificato di produzione fornito.
     - **Svantaggi**: Può essere complesso gestire i certificati (rinnovi, distribuzione sicura) direttamente a livello di applicazione, specialmente con più istanze.
 2. **Utilizzo di un Reverse Proxy (approccio più comune e raccomandato)**:
 

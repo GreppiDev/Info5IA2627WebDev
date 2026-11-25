@@ -18,6 +18,7 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurazione del sistema DataProtection per supportare più istanze
@@ -152,13 +153,6 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -187,7 +181,12 @@ if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'EducationalGamesConnection' not found.");
 }
-var serverVersion = ServerVersion.AutoDetect(connectionString);
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(
     opt => opt.UseMySql(connectionString, serverVersion)
         .LogTo(Console.WriteLine, LogLevel.Information)
@@ -478,14 +477,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {
@@ -549,8 +542,7 @@ app.MapPrometheusScrapingEndpoint();
 
 // Endpoint per health check (per monitoraggio)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
-   .WithTags("Health")
-   .WithOpenApi();
+   .WithTags("Health");
 
 // Endpoint di test per la telemetria
 app.MapPost("/api/telemetry/test", async (
@@ -578,7 +570,6 @@ app.MapPost("/api/telemetry/test", async (
     }
 })
 .WithTags("Telemetry")
-.WithOpenApi()
 .WithSummary("Test endpoint per dimostrare OpenTelemetry tracing");
 
 // Map Game Endpoints

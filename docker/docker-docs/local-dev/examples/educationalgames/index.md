@@ -3607,8 +3607,7 @@ app.MapPrometheusScrapingEndpoint();
 
 // Endpoint per health check (per monitoraggio)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
-   .WithTags("Health")
-   .WithOpenApi();
+   .WithTags("Health");
 
 // Endpoint di test per la telemetria
 app.MapPost("/api/telemetry/test", async (
@@ -3636,7 +3635,6 @@ app.MapPost("/api/telemetry/test", async (
     }
 })
 .WithTags("Telemetry")
-.WithOpenApi()
 .WithSummary("Test endpoint per dimostrare OpenTelemetry tracing");
 //altri endpoints
 // Map Game Endpoints
