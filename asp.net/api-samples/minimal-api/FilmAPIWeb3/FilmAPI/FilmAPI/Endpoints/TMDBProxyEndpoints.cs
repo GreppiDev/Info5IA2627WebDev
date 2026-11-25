@@ -57,11 +57,8 @@ public static class TMDBProxyEndpoints
         })
         .RequireRateLimiting("TMDBPolicy")
         .WithName("GetTMDBDataSwagger")
-        .WithOpenApi(operation => {
-            operation.Summary = "Proxy endpoint for TMDB API (Swagger UI)";
-            operation.Description = "Forwards requests to The Movie Database API. Use the path parameter to specify the TMDB endpoint (e.g. movie/98, movie/popular)";
-            return operation;
-        });
+        .WithSummary("Proxy endpoint for TMDB API (Scalar UI)")
+        .WithDescription("Forwards requests to The Movie Database API. Use the path parameter to specify the TMDB endpoint (e.g. movie/98, movie/popular)");
 
         // Endpoint per le chiamate effettive a TMDB
         //non è inserito in Swagger UI perché non è destinato all'uso diretto dagli utenti

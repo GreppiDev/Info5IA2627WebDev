@@ -1,6 +1,7 @@
 using FilmAPI.Data;
 using FilmAPI.Endpoints;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,30 +9,31 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//aggiunge il servizio che permette ad OpenAPI di leggere i metadati delle API
-builder.Services.AddEndpointsApiExplorer();
-//configura il servizio OpenAPI
-builder.Services.AddOpenApiDocument(config =>
-	{
-		config.Title = "FilmAPI di Malafronte v1";
-		config.DocumentName = "Film API di Malafronte";
-		config.Version = "v1";
-	}
-);
 if (builder.Environment.IsDevelopment())
 {
 	builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 }
 //accediamo alla stringa di connessione
-var connectionString = builder.Configuration.GetConnectionString("FilmAPIConnection");
-var serverVersion = ServerVersion.AutoDetect(connectionString);
+var connectionString = builder.Configuration.GetConnectionString("FilmAPIConnection")
+	?? throw new InvalidOperationException("Connection string 'FilmAPIConnection' not found.");
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 //Aggiungiamo il servizio database tramite EF Core con MariaDB
-builder.Services.AddDbContext<FilmDbContext>(
-	opt => opt.UseMySql(connectionString, serverVersion)
-	.LogTo(Console.WriteLine, LogLevel.Information)
-	.EnableSensitiveDataLogging()
-	.EnableDetailedErrors()
-	);
+builder.Services.AddDbContext<FilmDbContext>(opt =>
+{
+	opt.UseMySql(connectionString, serverVersion);
+
+	if (builder.Environment.IsDevelopment())
+	{
+		opt.LogTo(Console.WriteLine, LogLevel.Information)
+			.EnableSensitiveDataLogging()
+			.EnableDetailedErrors();
+	}
+});
 
 var app = builder.Build();
 
@@ -39,35 +41,13 @@ var app = builder.Build();
 //qui mettiamo i middleware
 if (app.Environment.IsDevelopment())
 {
-	//permette di ottenere una rotta dove vedere la documentazione delle API secondo lo standard OpenAPI
 	app.MapOpenApi();
-	//permette a Swagger (NSwag) di generare un file JSON con le specifiche delle API
-	app.UseOpenApi();
-	//permette di configurare l'interfaccia SwaggerUI (l'interfaccia grafica web di Swagger (NSwag) che permette di interagire con le API)
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "Film API di Malafronte v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
-}
-//altri middleware
-if (app.Environment.IsDevelopment())
-{
+	app.MapScalarApiReference();
 	app.UseDeveloperExceptionPage();
 }
 app.UseHttpsRedirection();
-// Configure Swagger UI before static files
-app.UseSwaggerUi(config =>
-{
-	config.DocumentTitle = "Film API di Malafronte v1";
-	config.Path = "/swagger";
-	config.DocumentPath = "/swagger/{documentName}/swagger.json";
-	config.DocExpansion = "list";
-});
 
-// Serve static files after Swagger
+// Serve static files after Scalar
 
 // Middleware per file statici
 
@@ -87,7 +67,6 @@ app
 .MapFilmEndpoints()
 .MapProiezioniEndpoints()
 .MapCinemaEndpoints()
-.WithOpenApi()
 .WithTags("Public API");
 
 //--------------------Endpoints management--------------------

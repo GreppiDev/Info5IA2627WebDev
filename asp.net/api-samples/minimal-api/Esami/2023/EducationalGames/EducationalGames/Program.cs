@@ -14,6 +14,7 @@ using EducationalGames.Auth;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using EducationalGames.Services;
+using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurazione del sistema DataProtection per supportare più istanze
@@ -134,13 +135,6 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -169,13 +163,23 @@ if (string.IsNullOrEmpty(connectionString))
 {
     throw new InvalidOperationException("Connection string 'EducationalGamesConnection' not found.");
 }
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContext<AppDbContext>(
-    opt => opt.UseMySql(connectionString, serverVersion)
-        .LogTo(Console.WriteLine, LogLevel.Information)
-        .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()) // Log sensibili solo in DEV
-        .EnableDetailedErrors(builder.Environment.IsDevelopment())      // Errori dettagliati solo in DEV
-);
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
+builder.Services.AddDbContext<AppDbContext>(opt =>
+{
+    opt.UseMySql(connectionString, serverVersion);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        opt.LogTo(Console.WriteLine, LogLevel.Information)
+            .EnableSensitiveDataLogging()
+            .EnableDetailedErrors();
+    }
+});
 
 // --- Configurazione Autenticazione (Cookie + Google + Microsoft) ---
 builder.Services.AddAuthentication(options =>
@@ -365,14 +369,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {

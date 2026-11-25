@@ -24,9 +24,12 @@ if (builder.Environment.IsDevelopment())
 // 👇 si modifichi il DbContext per l'accesso al database 
 //builder.Services.AddDbContext<PizzaDb>(options => options.UseSqlite(connectionString));
 
-// 👇 versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3),
-// così `dotnet ef` funziona anche quando il container DB è spento.
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
 var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 // 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Microting
 builder.Services.AddDbContext<PizzaDb>(dbContextOptions =>
 {
