@@ -762,13 +762,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -968,14 +961,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {
@@ -1309,9 +1296,8 @@ builder.Services.AddDataProtection()
 // --- 3. Aggiungi Servizi (DbContext, PasswordHasher, etc.) ---
 builder.Services.AddDbContext<AppDbContext>(/* ... opzioni ... */);
 builder.Services.AddScoped<PasswordHasher<Utente>>();
-// Aggiungi altri servizi necessari (es. per OpenAPI/Swagger)
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config => { /* ... */ });
+// Aggiungi altri servizi necessari (es. per OpenAPI / Scalar)
+builder.Services.AddOpenApi();
 // Configura JSON Enum Converter
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options => {
      options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
@@ -1362,7 +1348,7 @@ var app = builder.Build();
 // using (var scope = app.Services.CreateScope()){ await DatabaseInitializer.InitializeAndSeedAsync(scope.ServiceProvider, app.Environment); }
 
 // --- 8. Configura Pipeline Middleware (Ordine Importante!) ---
-if (app.Environment.IsDevelopment()) { /* ... DevPage, Swagger ... */ } else { /* ... Prod ... */ }
+if (app.Environment.IsDevelopment()) { /* ... DevPage, OpenAPI/Scalar ... */ } else { /* ... Prod ... */ }
 
 // app.UseForwardedHeaders(); // Mettere MOLTO PRESTO se usato
 app.UseHttpsRedirection();
@@ -2322,13 +2308,6 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -2510,14 +2489,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {
@@ -3079,13 +3052,6 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -3299,14 +3265,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {
@@ -4753,13 +4713,6 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Educational Games v1";
-    config.DocumentName = "Educational Games API";
-    config.Version = "v1";
-});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -4990,14 +4943,8 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Educational Games v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 else
 {

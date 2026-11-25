@@ -45,7 +45,7 @@ public static class TMDBProxyEndpoints
 
     public static RouteGroupBuilder MapTMDBProxyEndpoints(this RouteGroupBuilder group)
     {
-        // Endpoint per Swagger UI a solo scopo di documentazione
+        // Endpoint per Scalar / OpenAPI a solo scopo di documentazione
         //non è destinato all'uso diretto da parte dell'applicazione client
         group.MapGet("/tmdb/proxy", async (
             HttpContext context,
@@ -56,13 +56,13 @@ public static class TMDBProxyEndpoints
             return await HandleTMDBRequest(context, tmdbService, validationService, endpoint);
         })
         .RequireRateLimiting("TMDBPolicy")
-        .WithName("GetTMDBDataSwagger")
+        .WithName("GetTMDBDataOpenApi")
         .WithSummary("Proxy endpoint for TMDB API (Scalar UI)")
         .WithDescription("Forwards requests to The Movie Database API. Use the path parameter to specify the TMDB endpoint (e.g. movie/98, movie/popular)");
 
         // Endpoint per le chiamate effettive a TMDB
-        //non è inserito in Swagger UI perché non è destinato all'uso diretto dagli utenti
-        //e perché in swagger non è possibile specificare un parametro path che accetti qualsiasi valore
+        //non è inserito in Scalar / OpenAPI perché non è destinato all'uso diretto dagli utenti
+        //e perché nella specifica OpenAPI non è possibile definire un parametro path catch-all arbitrario
         group.MapGet("/tmdb/{*endpoint}", async (
             HttpContext context,
             ITMDBHttpClientService tmdbService,
@@ -72,7 +72,7 @@ public static class TMDBProxyEndpoints
             return await HandleTMDBRequest(context, tmdbService, validationService, endpoint);
         })
         .RequireRateLimiting("TMDBPolicy")
-        .ExcludeFromDescription(); // This hides it from Swagger UI
+        .ExcludeFromDescription(); // This hides it from Scalar / OpenAPI
 
         return group;
     }

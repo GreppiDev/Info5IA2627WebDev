@@ -143,22 +143,22 @@ app.MapGet("/extension-methods", () => "Hello world!")
 			- Supporta risposte in formato `text/plain`
 			- Documentazione generata con **OpenAPI** e visualizzata in **Scalar**
 			""");
-//👇 i metadati summary e Description inseriti sull'Endpoint /attributes 
-//sono presenti sia nella documentazione di OpenAPI che in quella di Swagger
-//perché è stato usato il metodo di estensione WithOpenApi
+//👇 i metadati Summary e Description inseriti sull'Endpoint /attributes
+//sono presenti nella documentazione OpenAPI e visualizzati in Scalar
+//tramite gli endpoint attributes o gli extension method .WithSummary() / .WithDescription()
 // app.MapGet("/attributes",
 //   [EndpointSummary("This is a summary.")]
 // [EndpointDescription("This is a description.")]
-// () => "Hello world!").WithOpenApi();
+// () => "Hello world!");
 
-//WithTags oppure Tags permettono di inserire i tag sia in OpenAPI che in Swagger
+//WithTags oppure Tags permettono di inserire i tag nella documentazione OpenAPI / Scalar
 // app.MapGet("/extension-methods", () => "Hello world!")
 //   .WithTags("todos", "projects");
 // app.MapGet("/attributes",[Tags("todos", "projects")]() => "Hello world!");
 
-//👇 per assicurare coerenza tra OpenAPI e Swagger è opportuno aggiungere .WithOpenApi()
-// app.MapGet("/extension-methods", () => "Hello world!").WithName("FromExtensionMethods").WithOpenApi();
-// app.MapGet("/attributes",[EndpointName("FromAttributes")]() => "Hello world!").WithOpenApi();
+//👇 WithName ed EndpointName assegnano un operationId coerente nel documento OpenAPI
+// app.MapGet("/extension-methods", () => "Hello world!").WithName("FromExtensionMethods");
+// app.MapGet("/attributes",[EndpointName("FromAttributes")]() => "Hello world!");
 
 
 app.MapGet("/attributes",([Description("This is a description.")] string name) => "Hello world!");

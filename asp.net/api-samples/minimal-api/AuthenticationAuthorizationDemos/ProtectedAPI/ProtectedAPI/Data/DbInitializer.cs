@@ -113,7 +113,7 @@ public static class DbInitializer
             new Todo
             {
                 Title = "Testing API",
-                Description = "Verificare il funzionamento delle API con Swagger",
+                Description = "Verificare il funzionamento delle API con Scalar",
                 IsComplete = false
             }
         };

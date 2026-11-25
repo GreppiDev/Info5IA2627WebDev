@@ -114,7 +114,7 @@ public sealed class TMDBHttpClientService : ITMDBHttpClientService, IDisposable
 
 Il sistema espone due endpoint:
 
-1. `/tmdb/proxy?path={endpoint}` - Per documentazione Swagger
+1. `/tmdb/proxy?path={endpoint}` - Per documentazione OpenAPI/Scalar
 2. `/tmdb/{*endpoint}` - Per le chiamate effettive
 
 Caratteristiche:
