@@ -933,7 +933,7 @@ Le CTE sono state introdotte nello **standard SQL:1999** e sono supportate da My
 
 ✅ **Performance**: Il database può ottimizzare meglio l'esecuzione rispetto alle subquery nidificate
 
-✅ **Riutilizzabilità**: Una CTE può essere referenziata multiple volte nella query principale
+✅ **Riutilizzabilità**: Una CTE può essere referenziata molte volte nella query principale
 
 ### Sintassi delle CTE
 
