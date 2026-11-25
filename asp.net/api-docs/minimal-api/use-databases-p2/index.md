@@ -16,7 +16,7 @@
     - [Migration](#migration)
     - [View Model per i dati - DTO](#view-model-per-i-dati---dto)
     - [Migrazione con `Code First Approach` (solo per sviluppo e testing)](#migrazione-con-code-first-approach-solo-per-sviluppo-e-testing)
-    - [Configurazione di Swagger con il View Model](#configurazione-di-swagger-con-il-view-model)
+    - [Visualizzazione delle API con Scalar](#visualizzazione-delle-api-con-scalar)
     - [Gestione di tanti Endpoints](#gestione-di-tanti-endpoints)
       - [Il file `Program.cs` finale](#il-file-programcs-finale)
       - [Gestione degli Endpoint (Handlers)](#gestione-degli-endpoint-handlers)
@@ -168,19 +168,19 @@ Il servizio deve prevedere i seguenti endpoints:
 
 ## Sviluppo del progetto
 
-Per prima cosa si crei un progetto di `Minimal API ASP.NET`. Si installino i pacchetti richiesti per l'integrazione di EF Core con MariaDb e per il supporto a OpenApi.
+Per prima cosa si crei un progetto di `Minimal API ASP.NET` con target `.NET 11` (`net11.0`). Si installino i pacchetti richiesti per l'integrazione di EF Core con MariaDb, il supporto OpenAPI e l'interfaccia interattiva Scalar:
 
-:memo: :warning: Nell'elenco riportato di seguito sono indicate alcune versioni pre-release, in attesa che venga rilasciata la versione stabile di `Pomelo.EntityFrameworkCore.MySql` per `net9.0`:
+> :memo: **Passaggio da Pomelo a Microting (`.NET 10+` e `.NET 11`):** `Pomelo.EntityFrameworkCore.MySql` si è fermato alla versione `9.0.0` (EF Core 9). Il suo proseguimento ufficiale (stessi autori, licenza MIT, repository [`microting/Pomelo.EntityFrameworkCore.MySql`](https://github.com/microting/Pomelo.EntityFrameworkCore.MySql), API e namespace identici) è **`Microting.EntityFrameworkCore.MySql`**. Con `.NET 11` si usa la versione `11.0.0` (che include transitivamente `MySqlConnector` `3.0.0`) e `Microsoft.EntityFrameworkCore.Design` va allineato alla stessa major (`11.x`).
 
 ```ps1
- dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore --version 9.0.0-preview.1.24081.5
- dotnet add package Microsoft.AspNetCore.OpenApi 
- dotnet add package NSwag.AspNetCore 
- dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.0-preview.1.24081.2
- dotnet add package Pomelo.EntityFrameworkCore.MySql --version 9.0.0-preview.1
+dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
+dotnet add package Microsoft.AspNetCore.OpenApi
+dotnet add package Scalar.AspNetCore
+dotnet add package Microsoft.EntityFrameworkCore.Design
+dotnet add package Microting.EntityFrameworkCore.MySql
 ```
 
-:memo: **Nota sull'uso di MySQL/MariaDb**: quando si utilizza la libreria Pomelo, il `default charset` (la codifica usata per memorizzare su file i caratteri) è `utf8mb4`[^1][^2][^3], ossia la codifica UTF8 standard a lunghezza variabile fino a 4 byte per carattere. Questa codifica non è supportata dalle vecchie versioni di MySQL, come ad esempio la versione 5.7. In questi casi, per evitare un errore a runtime quando si effettua la migrazione occorre procedere con una configurazione manuale del charset attraverso il metodo `OnConfiguring`, come descritto nella pagina della documentazione della libreria `Pomelo`:
+:memo: **Nota sull'uso di MySQL/MariaDb**: quando si utilizza la libreria Microting (fork ufficiale di Pomelo), il `default charset` (la codifica usata per memorizzare su file i caratteri) è `utf8mb4`[^1][^2][^3], ossia la codifica UTF8 standard a lunghezza variabile fino a 4 byte per carattere (con MariaDB 12 la collation predefinita è `utf8mb4_uca1400_ai_ci`, corretta per gli accenti italiani). Questa codifica non è supportata dalle vecchie versioni di MySQL, come ad esempio la versione 5.7. In questi casi, per evitare un errore a runtime quando si effettua la migrazione occorre procedere con una configurazione manuale del charset attraverso il metodo `OnConfiguring`, come descritto nella documentazione della libreria:
 
 ```cs
 // The database, tables and columns will explicitly be set to "latin1" by default.
@@ -490,21 +490,30 @@ Il database che sarà creato si chiama **azienda_api** e sarà gestito dal DBMS 
 
 :memo: :warning: Si noti che nel caso di un'applicazione reale potrebbe succedere che il database non sia installato in `localhost`, ma sia su un altro host nel cloud. In questo caso occorre inserire nella stringa di connessione al posto di `localhost`, l'indirizzo `IP`, oppure il `DNS fully qualified name` della macchina server che ospita il DBMS e usare come porta, quella sulla quale è in ascolto il DBMS.
 
-Per permettere all'applicazione ASP.NET Core di interagire con il database di MySQL/MariaDb occorre associare un servizio all'app che consenta di interfacciarsi con il DBMS. In questo esempio viene utilizzato il provider **Pomelo.EntityFrameworkCore.MySql** che permette di usare EF Core sia con MySQL che con MariaDb.
+Per permettere all'applicazione ASP.NET Core di interagire con il database di MySQL/MariaDb occorre associare un servizio all'app che consenta di interfacciarsi con il DBMS. In questo esempio viene utilizzato il provider **Microting.EntityFrameworkCore.MySql** (continuazione ufficiale di Pomelo per `.NET 10/11`) che permette di usare EF Core sia con MySQL che con MariaDb.
 
 Nel file `Program.cs` si scriva il codice seguente (dopo la creazione dell'oggetto `builder` e prima della creazione dell'oggetto `app`):
 
 ```cs
-var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection");
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContext<AziendaDbContext>(
-        opt => opt.UseMySql(connectionString, serverVersion)
-            // The following three options help with debugging, but should
-            // be changed or removed for production.
-            .LogTo(Console.WriteLine, LogLevel.Information)
+var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection")
+    ?? throw new InvalidOperationException("Connection string 'AziendaAPIConnection' not found.");
+
+// Si dichiara esplicitamente la versione del server MariaDB (es. immagine Docker mariadb:lts 12.3.3)
+// anziché usare ServerVersion.AutoDetect(connectionString), perché AutoDetect apre una connessione
+// durante builder.Build() facendo fallire `dotnet ef` quando il container DB è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+builder.Services.AddDbContext<AziendaDbContext>(opt =>
+{
+    opt.UseMySql(connectionString, serverVersion);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        // Utile in sviluppo per il debug delle query SQL; disabilitare in produzione
+        opt.LogTo(Console.WriteLine, LogLevel.Information)
             .EnableSensitiveDataLogging()
-            .EnableDetailedErrors()
-    );
+            .EnableDetailedErrors();
+    }
+});
 ```
 
 Questo codice consente di iniettare nella pipeline dell'`app` il servizio che permetterà di interfacciarci con MariaDb.
@@ -643,49 +652,24 @@ using (var serviceScope = app.Services.CreateScope())
 
 L'istruzione `context.Database.Migrate()` effettua in automatico la migrazione direttamente quando si manda in esecuzione l'app: **se il database non esiste viene creato ed eventualmente anche popolato con i dati che sono stati inseriti nei file di migration. Se il database esiste già non verrà eseguita alcuna azione.**
 
-### Configurazione di Swagger con il View Model
+### Visualizzazione delle API con Scalar
 
-Per evitare che `Swagger` riporti come schema dei dati restituiti dagli endpoints delle API i modelli DTO è possibile istruire il servizio in modo tale da togliere il suffisso DTO ai nomi delle classi esposte. In questo modo le applicazioni client vedranno la descrizione dei tipi senza il suffisso DTO:
+Con `Microsoft.AspNetCore.OpenApi` e `Scalar.AspNetCore`, la documentazione interattiva delle API (accessibile su `/scalar`) legge direttamente il documento `/openapi/v1.json` generato dal framework, senza richiedere configurazioni aggiuntive come `AddEndpointsApiExplorer()` o `AddOpenApiDocument(...)`:
 
 ```cs
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-// builder.Services.AddOpenApiDocument(config =>
-// {
-//     config.DocumentName = "AziendaAPIv1";
-//     config.Title = "AziendaAPI v1";
-//     config.Version = "v1";
-// });
-builder.Services.AddOpenApiDocument(config =>
+```
+
+e nella pipeline di sviluppo:
+
+```cs
+if (app.Environment.IsDevelopment())
 {
-    config.DocumentName = "AziendaAPIv1";
-    config.Title = "AziendaAPI v1";
-    config.Version = "v1";
-
-    config.PostProcess = document =>
-      {
-          var schemasToRename = document.Components.Schemas
-              .Where(kv => kv.Key.EndsWith("DTO", StringComparison.OrdinalIgnoreCase))
-              .ToList(); // Crea una lista temporanea delle chiavi da rinominare
-
-          foreach (var schema in schemasToRename)
-          {
-              var originalName = schema.Key;
-              var newName = originalName[..^3];
-
-              if (!document.Components.Schemas.ContainsKey(newName)) // Si evitano i duplicati
-              {
-                  document.Components.Schemas.Add(newName, schema.Value);
-              }
-
-              document.Components.Schemas.Remove(originalName);
-          }
-      };
-});
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 ```
 
 ### Gestione di tanti Endpoints
@@ -700,83 +684,43 @@ In questo esempio ci sono molte rotte e per ognuna di queste occorre definire de
 using AziendaAPI.Data;
 using AziendaAPI.Endpoints;
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-// builder.Services.AddOpenApiDocument(config =>
-// {
-//     config.DocumentName = "AziendaAPIv1";
-//     config.Title = "AziendaAPI v1";
-//     config.Version = "v1";
-// });
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.DocumentName = "AziendaAPIv1";
-    config.Title = "AziendaAPI v1";
-    config.Version = "v1";
 
-    config.PostProcess = document =>
-      {
-          var schemasToRename = document.Components.Schemas
-              .Where(kv => kv.Key.EndsWith("DTO", StringComparison.OrdinalIgnoreCase))
-              .ToList(); // Creiamo una lista temporanea delle chiavi da rinominare
-
-          foreach (var schema in schemasToRename)
-          {
-              var originalName = schema.Key;
-              var newName = originalName[..^3];
-
-              if (!document.Components.Schemas.ContainsKey(newName)) // Evitiamo duplicati
-              {
-                  document.Components.Schemas.Add(newName, schema.Value);
-              }
-
-              document.Components.Schemas.Remove(originalName);
-          }
-      };
-});
 //adding services to the container
 if (builder.Environment.IsDevelopment())
 {
     //il servizio AddDatabaseDeveloperPageExceptionFilter andrebbe usato solo in fase di testing e non in produzione.
     builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 }
-var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection");
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-builder.Services.AddDbContext<AziendaDbContext>(
-        opt => opt.UseMySql(connectionString, serverVersion)
-            // The following three options help with debugging, but should
-            // be changed or removed for production.
-            .LogTo(Console.WriteLine, LogLevel.Information)
+var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection")
+    ?? throw new InvalidOperationException("Connection string 'AziendaAPIConnection' not found.");
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+builder.Services.AddDbContext<AziendaDbContext>(opt =>
+{
+    opt.UseMySql(connectionString, serverVersion);
+
+    if (builder.Environment.IsDevelopment())
+    {
+        opt.LogTo(Console.WriteLine, LogLevel.Information)
             .EnableSensitiveDataLogging()
-            .EnableDetailedErrors()
-    );
+            .EnableDetailedErrors();
+    }
+});
 
 var app = builder.Build();
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-    //adding middleware for OpenAPI
-	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-
-    {
-        config.DocumentTitle = "AziendaAPI v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-
-    });
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 using (var serviceScope = app.Services.CreateScope())
@@ -784,8 +728,8 @@ using (var serviceScope = app.Services.CreateScope())
 {
     var context = serviceScope.ServiceProvider.GetRequiredService<AziendaDbContext>();
     context.Database.Migrate();
-    //vedere IN ALTERNATIVA al comando context.Database.Migrate() anche
-    //context.Database.EnsureCreated();
+    //vedere IN ALTERNATIVA al comando context.Database.Migrate() anche
+    //context.Database.EnsureCreated();
 
 }
 
@@ -1291,10 +1235,10 @@ Con l'account creato, il file di configurazione `appsettings.json` diventerebbe:
 
 ### Creazione del database mediante uno script SQL (in produzione)
 
-Supponendo di aver eseguito la migrazione del database e che si voglia generare uno script SQL per la creazione del database a partire dall'ultima migrazione, si può utilizzare il comando seguente, descritto nella [documentazione Microsoft](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying?tabs=dotnet-core-cli):
+Supponendo di aver eseguito la migrazione del database e che si voglia generare uno script SQL per la creazione del database a partire dall'ultima migrazione, si può utilizzare il comando seguente (aggiungendo `--idempotent` per controllare `__EFMigrationsHistory` prima di ogni migrazione e rendere lo script rieseguibile più volte senza errori), descritto nella [documentazione Microsoft](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying?tabs=dotnet-core-cli):
 
 ```ps1
- dotnet ef migrations script -o ./Scripts/InitialMigrate_script.sql
+ dotnet ef migrations script --idempotent -o ./Scripts/InitialMigrate_script.sql
 ```
 
 L'opzione `-o` permette di indicare il nome del file dove inserire lo script. Nell'esempio precedente lo script viene creato nella cartella `Scripts` all'interno della cartella del progetto, ma è ovviamente possibile crearlo in un'altra cartella.
@@ -1375,7 +1319,7 @@ CREATE INDEX `IX_SviluppaProdotti_ProdottoId` ON `SviluppaProdotti` (`ProdottoId
 CREATE INDEX `IX_Sviluppatori_AziendaId` ON `Sviluppatori` (`AziendaId`);
 
 INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
-VALUES ('20241129084855_InitialMigrate', '9.0.0-preview.1.24081.2');
+VALUES ('20261125084855_InitialMigrate', '11.0.0');
 
 COMMIT;
 
@@ -2040,7 +1984,7 @@ Si effettuino le seguenti modifiche:
 
 6.	Testare l'applicazione
 
-[^1]: https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql/wiki/Character-Sets-and-Collations
+[^1]: https://github.com/microting/Pomelo.EntityFrameworkCore.MySql (continuazione ufficiale di Pomelo)
 
 [^2]: https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb4.html
 

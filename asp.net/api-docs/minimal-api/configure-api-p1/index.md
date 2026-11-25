@@ -11,7 +11,7 @@
       - [Accesso limitato alla documentazione di OpenAPI](#accesso-limitato-alla-documentazione-di-openapi)
       - [Caching del documento di OpenAPI](#caching-del-documento-di-openapi)
       - [Generazione del documento di OpenAPI al tempo di compilazione](#generazione-del-documento-di-openapi-al-tempo-di-compilazione)
-      - [Integrazione delle configurazioni di OpenAPI in Swagger](#integrazione-delle-configurazioni-di-openapi-in-swagger)
+      - [Visualizzazione dei metadati OpenAPI in Scalar](#visualizzazione-dei-metadati-openapi-in-scalar)
       - [Include OpenAPI metadata in an ASP.NET Core app](#include-openapi-metadata-in-an-aspnet-core-app)
         - [Include OpenAPI metadata for endpoints](#include-openapi-metadata-for-endpoints)
           - [Summary and description](#summary-and-description)
@@ -49,14 +49,16 @@
 
 In questa sezione verranno approfonditi alcuni concetti già visti nei primi esempi di `Minimal API`, relativi al supporto alla documentazione `OpenAPI`.
 
-La [documentazione Microsoft relativa alla generazione della documentazione OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi) specifica che:
+La [documentazione Microsoft relativa alla generazione della documentazione OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi?view=aspnetcore-11.0) specifica che:
 
-The [`Microsoft.AspNetCore.OpenApi`](https://www.nuget.org/packages/Microsoft.AspNetCore.OpenApi) package provides built-in support for OpenAPI document generation in ASP.NET Core. The package provides the following features:
+The [`Microsoft.AspNetCore.OpenApi`](https://www.nuget.org/packages/Microsoft.AspNetCore.OpenApi) package provides built-in support for OpenAPI document generation in ASP.NET Core. The package provides the following features:
 
+- Support for generating [OpenAPI version 3.1](https://spec.openapis.org/oas/v3.1.1.html) documents starting with .NET 10, and [OpenAPI version 3.2](https://spec.openapis.org/oas/v3.2.0.html) documents starting with .NET 11 (default in .NET 11).
+- Support for [JSON Schema draft 2020-12](https://json-schema.org/specification-links#2020-12).
 - Support for generating OpenAPI documents at run time and accessing them via an endpoint on the application.
 - Support for "transformer" APIs that allow modifying the generated document.
 - Support for generating multiple OpenAPI documents from a single app.
-- Takes advantage of JSON schema support provided by [`System.Text.Json`](https://learn.microsoft.com/en-us/dotnet/api/system.text.json).
+- Takes advantage of JSON schema support provided by [`System.Text.Json`](https://learn.microsoft.com/en-us/dotnet/api/system.text.json).
 - Is compatible with native AoT.
 
 ### Installazione dei pacchetti
@@ -67,20 +69,23 @@ Il pacchetto richiesto per il supporto alla documentazione OpenAPI in ASP.NET Co
 dotnet add package Microsoft.AspNetCore.OpenApi
 ```
 
-Tuttavia, per avere anche il supporto alla versione grafica della documentazione mediante l'interfaccia `Swagger`, è opportuno installare anche il pacchetto:
+Per avere anche il supporto alla versione grafica interattiva della documentazione tramite [**Scalar**](https://scalar.com/), è sufficiente installare il pacchetto:
 
 ```sh
-dotnet add package NSwag.AspNetCore
+dotnet add package Scalar.AspNetCore
 ```
+
+Rispetto a soluzioni come Swagger/NSwag, `Scalar.AspNetCore` legge direttamente il documento OpenAPI generato da `Microsoft.AspNetCore.OpenApi` senza richiedere configurazioni aggiuntive nei servizi.
 
 ### Un progetto di esempio - `PizzaStoreV3`
 
-La configurazione di una applicazione ASP.NET Core per il supporto a `OpenAPI` può essere fatta come già visto negli esempi precedenti. Ad esempio, si consideri il progetto [`PizzaStoreV3`](../../../api-samples/minimal-api/PizzaStore/PizzaStoreV3/) il cui punto di partenza è il progetto [`PizzaStoreV1`](../../../api-samples/minimal-api/PizzaStore/PizzaStoreV1/):
+La configurazione di una applicazione ASP.NET Core per il supporto a `OpenAPI` e `Scalar` può essere fatta in modo minimale. Ad esempio, si consideri il progetto [`PizzaStoreV3`](../../../api-samples/minimal-api/PizzaStore/PizzaStoreV3/) il cui punto di partenza è il progetto [`PizzaStoreV1`](../../../api-samples/minimal-api/PizzaStore/PizzaStoreV1/):
 
 ```cs
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV3.Data;
 using PizzaStoreV3.Model;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👈 si aggiunga la connection string
@@ -89,16 +94,6 @@ var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "D
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration with NSwag
-//questa configurazione è richiesta solo nel caso in cui si voglia il supporto a Swagger tramite NSwag
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv3";
-	config.Title = "PizzaStore v3";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -115,22 +110,11 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	//adding web UI for Swagger with NSwag
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v3";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");
@@ -171,23 +155,23 @@ app.Run();
 
 ```
 
-Se si prova a lanciare l'esecuzione del progetto si vedrà che è possibile ottenere la documentazione prodotta da OpenAPI con:
+Se si prova a lanciare l'esecuzione del progetto si vedrà che è possibile ottenere la documentazione prodotta da OpenAPI in formato JSON con:
 
 ```sh
 GET http://localhost:5064/openapi/v1.json
 ```
 
-Il numero di porta a cui è possibile reperire la documentazione in formato `JSON` è lo stesso su cui è in ascolto l'applicazione `ASP.NET Core` e che può essere configurato modificando i parametri del file `launchSettings.json`. Si noti che il nome del documento è `v1.json`.
+Il numero di porta a cui è possibile reperire la documentazione in formato `JSON` è lo stesso su cui è in ascolto l'applicazione `ASP.NET Core` e può essere configurato modificando i parametri del file `launchSettings.json`. Si noti che il nome del documento di default è `v1.json`.
 
-Se oltre a configurare `OpenApi`, si configura anche il supporto alla visualizzazione della documentazione mediante `Swagger` con il pacchetto `NSwag`, è possibile reperire la documentazione delle API in formato `JSON` anche con:
+Per esplorare e testare gli endpoint tramite l'interfaccia grafica di **Scalar**, è sufficiente aprire nel browser l'indirizzo:
 
 ```sh
-GET http://localhost:5064/swagger/PizzaStoreAPIv3/swagger.json
+http://localhost:5064/scalar
 ```
 
-Se si analizzano i due file `JSON` di documentazione, si vedrà che questi sono molto simili tra loro, ma non identici.
+(o `http://localhost:5064/scalar/v1`), che legge automaticamente il documento JSON esposto su `/openapi/v1.json`.
 
-### [Generazione e configurazione di OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openap)
+### [Generazione e configurazione di OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi?view=aspnetcore-11.0)
 
 #### Configurazione del `document name`
 
@@ -211,18 +195,20 @@ GET http://localhost:5064/openapi/internal.json
 
 #### Configurazione della versione di OpenAPI generata
 
-By default, OpenAPI document generation creates a document that is compliant with [v3.0 of the OpenAPI specification](https://spec.openapis.org/oas/v3.0.0). The following code demonstrates how to modify the default version of the OpenAPI document:
+Starting in .NET 11, OpenAPI document generation creates a document compliant with [v3.2 of the OpenAPI specification](https://spec.openapis.org/oas/v3.2.0.html) by default (in .NET 10 the default was v3.1). When downstream tooling doesn't yet handle OpenAPI 3.2, you can target an earlier version using `Microsoft.OpenApi.OpenApiSpecVersion`:
 
 ```cs
+using Microsoft.OpenApi;
+
 builder.Services.AddOpenApi(options =>
 {
-    options.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
 });
 
-//oppure, se si volesse modificare sia il nome che le opzioni:
-builder.Services.AddOpenApi("internal", options => 
+// oppure, per OpenAPI 3.0 su un documento specifico:
+builder.Services.AddOpenApi("internal", options =>
 {
-	options.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+    options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
 });
 ```
 
@@ -247,7 +233,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -282,7 +267,6 @@ The OpenAPI document is regenerated every time a request to the OpenAPI endpoint
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -323,13 +307,13 @@ To add support for generating OpenAPI documents at build time, install the `Mic
 dotnet add package Microsoft.Extensions.ApiDescription.Server
 ```
 
-:memo: :warning: [Enable document generation at build time by setting the following properties in the app's .csproj file](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/using-openapi-documents):
+:memo: :warning: [Enable document generation at build time by setting the following properties in the app's .csproj file](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/using-openapi-documents?view=aspnetcore-11.0):
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
@@ -345,17 +329,15 @@ https://stackoverflow.com/questions/79303741/asp-net-core-openapi-buildtime-gene
 </Project>
 ```
 
-#### Integrazione delle configurazioni di OpenAPI in Swagger
+#### Visualizzazione dei metadati OpenAPI in Scalar
 
-Nei paragrafi seguenti verranno mostrati i meccanismi per configurare la documentazione di `OpenAPI`. Tale documentazione è tipicamente rappresentata da un file in formato `JSON` che può essere generato al tempo di compilazione (come mostrato al paragrafo precedente) oppure a runtime, reperibile al link `http://application-url/openapi/internal.json`. **In aggiunta a tale documentazione è possibile generare anche la documentazione di `Swagger`, tramite pacchetti aggiuntivi come `NSwag`.**
+Nei paragrafi seguenti verranno mostrati i meccanismi per configurare i metadati della documentazione `OpenAPI`. Tale documentazione è rappresentata da un file in formato `JSON` generato a runtime (reperibile di default all'indirizzo `http://application-url/openapi/v1.json`, o `/openapi/{documentName}.json`) oppure al tempo di compilazione.
 
-La documentazione di `Swagger` è reperibile a runtime all'indirizzo configurato nella pipeline dell'applicazione, tipicamente al link `http://application-url/swagger/index.html` nella versione interattiva, oppure, sotto forma di documento `JSON`, all'indirizzo `http://application-url/swagger/{documentName}/swagger.json`, dove `{documentName}` è il nome dato al documento di `Swagger` in fase di configurazione del servizio ( `PizzaStoreAPIv3` nell'esempio).
+Utilizzando **Scalar** (`app.MapScalarApiReference()`), l'interfaccia web interattiva (disponibile su `http://application-url/scalar`) legge direttamente il documento `OpenAPI` prodotto da `Microsoft.AspNetCore.OpenApi`. Tutti i metadati aggiunti agli endpoint (`WithSummary`, `WithDescription`, `WithTags`, `WithName`, `TypedResults`, data annotations sui modelli, ecc.) vengono mostrati automaticamente in Scalar senza dover gestire una doppia configurazione né invocare il metodo `.WithOpenApi()`.
 
-**Se si modificano i metadati di `OpenAPI`, come descritto nei paragrafi seguenti, le documentazioni di `OpenAPI` e di `Swagger` potrebbero non essere più intercambiabili, a meno di non utilizzare il metodo di estensione `.WithOpenApi()` (definito in `Microsoft.AspNetCore`) sui singoli endpoint, oppure sugli endpoint group.**
+#### [Include OpenAPI metadata in an ASP.NET Core app](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?view=aspnetcore-11.0)
 
-#### [Include OpenAPI metadata in an ASP.NET Core app](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata)
-
-##### [Include OpenAPI metadata for endpoints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#include-openapi-metadata-for-endpoints)
+##### [Include OpenAPI metadata for endpoints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?view=aspnetcore-11.0&tabs=minimal-apis#include-openapi-metadata-for-endpoints)
 
 ASP.NET collects metadata from the web app's endpoints and uses it to generate an OpenAPI document. In controller-based apps, metadata is collected from attributes like [`[EndpointDescription]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.endpointdescriptionattribute), [`[HttpPost]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.httppostattribute), and [`[Produces]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.producesattribute). In minimal APIs, metadata can be collected from attributes, but may also be set by using extension methods and other strategies, such as returning [TypedResults](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.typedresults) from route handlers. The following table provides an overview of the metadata collected and the strategies for setting it.
 
@@ -371,101 +353,72 @@ ASP.NET collects metadata from the web app's endpoints and uses it to generate a
 | responses | [`[Produces]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.producesattribute) | [Produces](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.produces), [ProducesProblem](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.producesproblem) | [TypedResults](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.typedresults) |
 | Excluding endpoints | [`[ExcludeFromDescription]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.routing.excludefromdescriptionattribute), [`[ApiExplorerSettings]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.apiexplorersettingsattribute) | [ExcludeFromDescription](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.excludefromdescription) |  |
 
-**ASP.NET Core does not collect metadata from XML doc comments.**
+ASP.NET Core can also collect metadata from XML doc comments. For more information, see [ASP.NET Core OpenAPI XML documentation comment support in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/openapi-comments?view=aspnetcore-11.0).
 
 The following sections demonstrate how to include metadata in an app to customize the generated OpenAPI document.
 
 ###### Summary and description
 
-The endpoint summary and description can be set using the [`[EndpointSummary]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.endpointsummaryattribute) and [`[EndpointDescription]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.endpointdescriptionattribute) attributes, or in minimal APIs, using the [WithSummary](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withsummary) and [WithDescription](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withdescription) extension methods.
+The endpoint summary and description can be set using the [`[EndpointSummary]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.endpointsummaryattribute) and [`[EndpointDescription]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.endpointdescriptionattribute) attributes, or in minimal APIs, using the [WithSummary](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withsummary) and [WithDescription](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withdescription) extension methods.
 
 ```cs
-//👇 i metadati summary e Description inseriti sull'Endpoint /extension-methods 
-//sono presenti nella documentazione di OpenAPI, ma non in quella di Swagger
 app.MapGet("/extension-methods", () => "Hello world!")
-  .WithSummary("This is a summary.")
-  .WithDescription("This is a description.");
-//👇 i metadati summary e Description inseriti sull'Endpoint /attributes 
-//sono presenti sia nella documentazione di OpenAPI che in quella di Swagger
-//perché è stato usato il metodo di estensione WithOpenApi
+    .WithSummary("This is a summary.")
+    .WithDescription("This is a description.");
+
 app.MapGet("/attributes",
-  [EndpointSummary("This is a summary.")]
-[EndpointDescription("This is a description.")]
-() => "Hello world!").WithOpenApi();
+    [EndpointSummary("This is a summary.")]
+    [EndpointDescription("This is a description.")]
+    () => "Hello world!");
 ```
 
-È possibile usare il linguaggio `Markdown` per la descrizione degli endpoint:
+È possibile usare il linguaggio `Markdown` (CommonMark) per la descrizione degli endpoint, sfruttando anche i [raw string literals](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/raw-string) (`"""`):
 
 ```cs
-app.MapGet("/extension-methods", () => "Hello world!")
-  .WithSummary("This is a summary.")
-  //è possibile usare CommonMark per la descrizione
-  //https://commonmark.org/
-  //https://www.markdownguide.org/
-  //https://markdown-it.github.io/
-  //Per il markdown può essere utile l'uso del nuovo operatore per le stringhe triple quote
-  //https://devblogs.microsoft.com/dotnet/csharp-11-preview-updates/#raw-string-literals
-  //il testo stampato è preso da:
-  //https://github.com/swagger-api/swagger-ui/blob/master/README.md
-  //https://raw.githubusercontent.com/swagger-api/swagger-ui/master/README.md
-  
-  //https://learn.microsoft.com/en-us/dotnet/api/microsoft.openapi.models.openapioperation
-  //https://learn.microsoft.com/en-us/dotnet/api/microsoft.openapi.models.openapioperation.requestbody
-  //The request body applicable for this operation. The requestBody is only supported in HTTP methods where
-  //the HTTP 1.1 specification RFC7231 has explicitly defined semantics for request bodies.
-  //In other cases where the HTTP spec is vague, requestBody SHALL be ignored by consumers.
+app.MapGet("/pizzas-info", () => "PizzaStore API")
+    .WithSummary("Informazioni sul servizio PizzaStore")
+    .WithDescription(
+        """
+        ## PizzaStore API
 
-  .WithDescription(
-			"""
-			# <img src="https://raw.githubusercontent.com/swagger-api/swagger.io/wordpress/images/assets/SWU-logo-clr.png" width="300">
+        Restituisce informazioni sullo stato del servizio **PizzaStore**.
 
-			[![NPM version](https://badge.fury.io/js/swagger-ui.svg)](http://badge.fury.io/js/swagger-ui)
-			[![Build Status](https://jenkins.swagger.io/view/OSS%20-%20JavaScript/job/oss-swagger-ui-master/badge/icon?subject=jenkins%20build)](https://jenkins.swagger.io/view/OSS%20-%20JavaScript/job/oss-swagger-ui-master/)
-			[![npm audit](https://jenkins.swagger.io/buildStatus/icon?job=oss-swagger-ui-security-audit&subject=npm%20audit)](https://jenkins.swagger.io/job/oss-swagger-ui-security-audit/lastBuild/console)
-			![total GitHub contributors](https://img.shields.io/github/contributors-anon/swagger-api/swagger-ui.svg)
-
-			![monthly npm installs](https://img.shields.io/npm/dm/swagger-ui.svg?label=npm%20downloads)
-			![total docker pulls](https://img.shields.io/docker/pulls/swaggerapi/swagger-ui.svg)
-			![monthly packagist installs](https://img.shields.io/packagist/dm/swagger-api/swagger-ui.svg?label=packagist%20installs)
-			![gzip size](https://img.shields.io/bundlephobia/minzip/swagger-ui.svg?label=gzip%20size)
-
-			## Introduction
-			[Swagger UI](https://swagger.io/tools/swagger-ui/) allows anyone — be it your development team or your end consumers — to visualize and interact with the API’s resources without having any of the implementation logic in place. It’s automatically generated from your OpenAPI (formerly known as Swagger) Specification, with the visual documentation making it easy for back end implementation and client side consumption.
-
-			## General
-			**👉🏼 Want to score an easy open-source contribution?** Check out our [Good first issue](https://github.com/swagger-api/swagger-ui/issues?q=is%3Aissue+is%3Aopen+label%3A%22Good+first+issue%22) label.
-
-			**🕰️ Looking for the older version of Swagger UI?** Refer to the [*2.x* branch](https://github.com/swagger-api/swagger-ui/tree/2.x).
-			"""
-			).WithOpenApi();
+        - Supporta risposte in formato `text/plain`
+        - Documentazione generata con **OpenAPI** e visualizzata in **Scalar**
+        """);
 ```
 
 ###### tags
 
 OpenAPI supports specifying tags on each endpoint as a form of categorization.
-In minimal APIs, tags can be set using either the [`[Tags]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.tagsattribute) attribute or the [WithTags](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withtags) extension method.
+In minimal APIs, tags can be set using either the [`[Tags]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.tagsattribute) attribute or the [WithTags](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.withtags) extension method.
 
 The following sample demonstrates the different strategies for setting tags.
 
 ```cs
-//WithTags oppure Tags permettono di inserire i tag sia in OpenAPI che in Swagger
 app.MapGet("/extension-methods", () => "Hello world!")
-  .WithTags("todos", "projects");
-app.MapGet("/attributes",[Tags("todos", "projects")]() => "Hello world!");
+    .WithTags("todos", "projects");
+
+app.MapGet("/attributes",
+    [Tags("todos", "projects")]
+    () => "Hello world!");
 ```
 
 ###### operationId
 
 OpenAPI supports an operationId on each endpoint as a unique identifier or name for the operation.
 
-In minimal APIs, the operationId can be set using either the [`[EndpointName]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.routing.endpointnameattribute) attribute or the [WithName](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.routingendpointconventionbuilderextensions.withname) extension method.
+In minimal APIs, the operationId can be set using either the [`[EndpointName]`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.routing.endpointnameattribute) attribute or the [WithName](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.routingendpointconventionbuilderextensions.withname) extension method.
 
 The following sample demonstrates the different strategies for setting the operationId.
 
 ```cs
-//👇 per assicurare coerenza tra OpenAPI e Swagger è opportuno aggiungere .WithOpenApi()
-app.MapGet("/extension-methods", () => "Hello world!").WithName("FromExtensionMethods").WithOpenApi();
-app.MapGet("/attributes",[EndpointName("FromAttributes")]() => "Hello world!").WithOpenApi();
+app.MapGet("/extension-methods", () => "Hello world!")
+    .WithName("FromExtensionMethods");
+
+app.MapGet("/attributes",
+    [EndpointName("FromAttributes")]
+    () => "Hello world!");
 ```
 
 ###### parameters
@@ -474,7 +427,7 @@ OpenAPI supports annotating path, query string, header, and cookie parameters th
 
 The framework infers the types for request parameters automatically based on the signature of the route handler.
 
-The [`[Description]`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.descriptionattribute) attribute can be used to provide a description for a parameter.
+The [`[Description]`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.descriptionattribute) attribute can be used to provide a description for a parameter.
 
 The follow sample demonstrates how to set a description for a parameter.
 
@@ -482,31 +435,31 @@ The follow sample demonstrates how to set a description for a parameter.
 app.MapGet("/attributes",([Description("This is a description.")] string name) => "Hello world!");
 ```
 
-###### [Describe the request body](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#describe-the-request-body)
+###### [Describe the request body](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?view=aspnetcore-11.0&tabs=minimal-apis#describe-the-request-body)
 
-The `requestBody` field in OpenAPI describes the body of a request that an API client can send to the server, including the content type(s) supported and the schema for the body content.
+The `requestBody` field in OpenAPI describes the body of a request that an API client can send to the server, including the content type(s) supported and the schema for the body content.
 
-When the endpoint handler method accepts parameters that are bound from the request body, ASP.NET Core generates a corresponding `requestBody` for the operation in the OpenAPI document. Metadata for the request body can also be specified using attributes or extension methods. Additional metadata can be set with a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-document-transformers) or [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-operation-transformers).
+When the endpoint handler method accepts parameters that are bound from the request body, ASP.NET Core generates a corresponding `requestBody` for the operation in the OpenAPI document. Metadata for the request body can also be specified using attributes or extension methods. Additional metadata can be set with a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-document-transformers) or [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-operation-transformers).
 
-If the endpoint doesn't define any parameters bound to the request body, but instead consumes the request body from the [HttpContext](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpcontext) directly, ASP.NET Core provides mechanisms to specify request body metadata. This is a common scenario for endpoints that process the request body as a stream.
+If the endpoint doesn't define any parameters bound to the request body, but instead consumes the request body from the [HttpContext](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpcontext) directly, ASP.NET Core provides mechanisms to specify request body metadata. This is a common scenario for endpoints that process the request body as a stream.
 
-Some request body metadata can be determined from the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) or [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute) parameters of the route handler method.
+Some request body metadata can be determined from the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) or [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute) parameters of the route handler method.
 
-A description for the request body can be set with a [`[Description]`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.descriptionattribute) attribute on the parameter with [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) or [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute).
+A description for the request body can be set with a [`[Description]`](https://learn.microsoft.com/en-us/dotnet/api/system.componentmodel.descriptionattribute) attribute on the parameter with [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) or [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute).
 
-If the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) parameter is non-nullable and [EmptyBodyBehavior](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute.emptybodybehavior#microsoft-aspnetcore-mvc-frombodyattribute-emptybodybehavior) is not set to [Allow](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.modelbinding.emptybodybehavior#microsoft-aspnetcore-mvc-modelbinding-emptybodybehavior-allow) in the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) attribute, the request body is required and the `required` field of the `requestBody` is set to `true` in the generated OpenAPI document. Form bodies are always required and have `required` set to `true`.
+If the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) parameter is non-nullable and [EmptyBodyBehavior](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute.emptybodybehavior#microsoft-aspnetcore-mvc-frombodyattribute-emptybodybehavior) is not set to [Allow](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.modelbinding.emptybodybehavior#microsoft-aspnetcore-mvc-modelbinding-emptybodybehavior-allow) in the [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) attribute, the request body is required and the `required` field of the `requestBody` is set to `true` in the generated OpenAPI document. Form bodies are always required and have `required` set to `true`.
 
-Use a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-document-transformers) or an [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-operation-transformers) to set the `example`, `examples`, or `encoding` fields, or to add specification extensions for the request body in the generated OpenAPI document.
+Use a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-document-transformers) or an [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-operation-transformers) to set the `example`, `examples`, or `encoding` fields, or to add specification extensions for the request body in the generated OpenAPI document.
 
 Other mechanisms for setting request body metadata depend on the type of app being developed and are described in the following sections.
 
-The content types for the request body in the generated OpenAPI document are determined from the type of the parameter that is bound to the request body or specified with the [Accepts](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.accepts) extension method. By default, the content type of a [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) parameter will be `application/json` and the content type for [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute) parameter(s) will be `multipart/form-data` or `application/x-www-form-urlencoded`.
+The content types for the request body in the generated OpenAPI document are determined from the type of the parameter that is bound to the request body or specified with the [Accepts](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.accepts) extension method. By default, the content type of a [`FromBody`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.frombodyattribute) parameter will be `application/json` and the content type for [`FromForm`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.mvc.fromformattribute) parameter(s) will be `multipart/form-data` or `application/x-www-form-urlencoded`.
 
-Support for these default content types is built in to Minimal APIs, and other content types can be handled by using custom binding. See the [Custom binding](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding?view=aspnetcore-9.0#custom-binding) topic of the Minimal APIs documentation for more information.
+Support for these default content types is built in to Minimal APIs, and other content types can be handled by using custom binding. See the [Custom binding](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/parameter-binding?view=aspnetcore-11.0#custom-binding) topic of the Minimal APIs documentation for more information.
 
 ```cs
-var pizzaGroup = app.MapGroup("pizza").WithOpenApi();
-pizzaGroup.MapPost("/", async (PizzaDb db,[Description("The pizza to post") ] Pizza pizza) =>
+var pizzaGroup = app.MapGroup("pizza");
+pizzaGroup.MapPost("/", async (PizzaDb db, [Description("The pizza to post")] Pizza pizza) =>
 {
 	db.Pizzas.Add(pizza);
 	await db.SaveChangesAsync();
@@ -514,9 +467,9 @@ pizzaGroup.MapPost("/", async (PizzaDb db,[Description("The pizza to post") ] Pi
 });
 ```
 
-###### [Describe response types](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#describe-the-request-body)
+###### [Describe response types](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?view=aspnetcore-11.0&tabs=minimal-apis#describe-response-types)
 
-OpenAPI supports providing a description of the responses returned from an API. ASP.NET Core provides several strategies for setting the response metadata of an endpoint. Response metadata that can be set includes the status code, the type of the response body, and content type(s) of a response. Responses in OpenAPI may have additional metadata, such as description, headers, links, and examples. This additional metadata can be set with a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-document-transformers) or [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-operation-transformers).
+OpenAPI supports providing a description of the responses returned from an API. ASP.NET Core provides several strategies for setting the response metadata of an endpoint. Response metadata that can be set includes the status code, the type of the response body, and content type(s) of a response. Responses in OpenAPI may have additional metadata, such as description, headers, links, and examples. This additional metadata can be set with a [document transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-document-transformers) or [operation transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-operation-transformers).
 
 The specific mechanisms for setting response metadata depend on the type of app being developed.
 
@@ -587,7 +540,7 @@ When setting the response type for endpoints that may return a ProblemDetails re
 - [ProducesValidationProblem](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.openapiroutehandlerbuilderextensions.producesvalidationproblem) extension method.
 - [TypedResults](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.typedresults) with a status code in the (400-499) range.
 
-For more information on how to configure a Minimal API app to return ProblemDetails responses, see [Handle errors in minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-9.0).
+For more information on how to configure a Minimal API app to return ProblemDetails responses, see [Handle errors in minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0).
 
 ###### [Multiple response types](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#multiple-response-types)
 
@@ -651,13 +604,11 @@ When the [PropertyNamingPolicy](https://learn.microsoft.com/en-us/dotnet/api/sy
 
 ###### [type and format](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#type-and-format)
 
-The JSON Schema library maps standard C# types to OpenAPI `type` and `format` as follows:
+The JSON Schema library maps standard C# types to OpenAPI `type` and `format` as follows:
 
-Expand table
-
-| C# Type | OpenAPI `type` | OpenAPI `format` |
+| C# Type | OpenAPI `type` | OpenAPI `format` |
+| --- | --- | --- |
 | int | integer | int32 |
-| --- |  --- |  --- |
 | long | integer | int64 |
 | short | integer | int16 |
 | byte | integer | uint8 |
@@ -676,9 +627,9 @@ Expand table
 | object | *omitted* |  |
 | dynamic | *omitted* |  |
 
-Note that object and dynamic types have *no* type defined in the OpenAPI because these can contain data of any type, including primitive types like int or string.
+Note that object and dynamic types have *no* type defined in the OpenAPI because these can contain data of any type, including primitive types like int or string.
 
-The `type` and `format` can also be set with a [Schema Transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-9.0#use-schema-transformers). For example, you may want the `format` of decimal types to be `decimal` instead of `double`.
+The `type` and `format` can also be set with a [Schema Transformer](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/customize-openapi?view=aspnetcore-11.0#use-schema-transformers). For example, you may want the `format` of decimal types to be `decimal` instead of `double`.
 
 ###### [Use attributes to add metadata](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/include-metadata?tabs=minimal-apis#use-attributes-to-add-metadata)
 
@@ -895,7 +846,7 @@ The preceding code displays `The link to the hello route is /hello` from the 
 Endpoint names:
 
 - Must be globally unique.
-- Are used as the OpenAPI operation id when OpenAPI support is enabled. For more information, see [OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi?view=aspnetcore-9.0).
+- Are used as the OpenAPI operation id when OpenAPI support is enabled. For more information, see [OpenAPI](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/openapi/aspnetcore-openapi?view=aspnetcore-11.0).
 
 #### [Route Parameters](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/route-handlers#route-parameters)
 
@@ -958,11 +909,11 @@ The following table demonstrates the preceding route templates and their behavio
 | `/todos/{text}` | `/todos/something` |
 | `/posts/{slug:regex(^[a-z0-9_-]+$)}` | `/posts/mypost` |
 
-For more information, see [Route constraint reference](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0) in [Routing in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0).
+For more information, see [Route constraint reference](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0) in [Routing in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0).
 
 #### [Route groups](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/route-handlers#route-groups)
 
-The [MapGroup](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutebuilderextensions.mapgroup) extension method helps organize groups of endpoints with a common prefix. It reduces repetitive code and allows for customizing entire groups of endpoints with a single call to methods like [RequireAuthorization](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.authorizationendpointconventionbuilderextensions.requireauthorization) and [WithMetadata](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.routingendpointconventionbuilderextensions.withmetadata) which add [endpoint metadata](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#endpoint-metadata).
+The [MapGroup](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutebuilderextensions.mapgroup) extension method helps organize groups of endpoints with a common prefix. It reduces repetitive code and allows for customizing entire groups of endpoints with a single call to methods like [RequireAuthorization](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.authorizationendpointconventionbuilderextensions.requireauthorization) and [WithMetadata](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.routingendpointconventionbuilderextensions.withmetadata) which add [endpoint metadata](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0#endpoint-metadata).
 
 Per mostrare l’utilizzo dell’estensione `MapGroup` si riscriva un aggiornamento del progetto `TodoApi` già mostrato in precedenza. Di seguito sono riportati i file principali del progetto aggiornato.
 
@@ -1116,7 +1067,9 @@ class TodoDb : DbContext
 
 ```cs
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoApiV2;
+
 //creation of Web application builder
 var builder = WebApplication.CreateBuilder(args);
 //adding services to the container
@@ -1128,33 +1081,15 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-// adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "TodoApiV2";
-	config.Title = "TodoAPI v2";
-	config.Version = "v1";
-});
 
 //creation of Web application
 var app = builder.Build();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "TodoAPI";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -1168,7 +1103,7 @@ app.MapGroup("/private/todos")
 //.RequireAuthorization();
 
 //alcuni esempi di rotte con gruppi presi dalla documentazione con qualche adattamento
-var all = app.MapGroup("").WithOpenApi();
+var all = app.MapGroup("");
 var org = all.MapGroup("{org}");
 var user = org.MapGroup("{user}");
 //questa è una GET sulla rotta definita da /{org}/{user}/
@@ -1192,25 +1127,25 @@ Il risultato è:
 
 ![TodoAPI Image](todo-api-image.png)
 
-## [Error Handling](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors)
+## [Error Handling](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0)
 
-### [Exceptions](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors#exceptions)
+### [Exceptions](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#exceptions)
 
 In a Minimal API app there are two different built-in centralized mechanisms to handle unhandled exceptions:
 
-- [Developer Exception Page middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-9.0#developer-exception-page) (For use in the **Development environment only**.)
-- [Exception handler middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-9.0#exception-handler)
+- [Developer Exception Page middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#developer-exception-page) (For use in the **Development environment only**.)
+- [Exception handler middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#exception-handler)
 
-#### [Developer Exception Page](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors#developer-exception-page)
+#### [Developer Exception Page](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#developer-exception-page)
 
-The *Developer Exception Page* displays detailed information about unhandled request exceptions. It uses [DeveloperExceptionPageMiddleware](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.developerexceptionpagemiddleware) to capture synchronous and asynchronous exceptions from the HTTP pipeline and to generate error responses. The developer exception page runs early in the middleware pipeline, so that it can catch unhandled exceptions thrown in middleware that follows.
+The *Developer Exception Page* displays detailed information about unhandled request exceptions. It uses [DeveloperExceptionPageMiddleware](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.developerexceptionpagemiddleware) to capture synchronous and asynchronous exceptions from the HTTP pipeline and to generate error responses. The developer exception page runs early in the middleware pipeline, so that it can catch unhandled exceptions thrown in middleware that follows.
 
 ASP.NET Core apps enable the developer exception page by default when both:
 
-- Running in the [Development environment](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-9.0).
-- The app was created with the current templates, that is, by using [WebApplication.CreateBuilder](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.webapplication.createbuilder).
+- Running in the [Development environment](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-11.0).
+- The app was created with the current templates, that is, by using [WebApplication.CreateBuilder](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.webapplication.createbuilder).
 
-:warning: :fire: **Don't enable the Developer Exception Page **unless the app is running in the Development environment**. Don't share detailed exception information publicly when the app runs in production. For more information on configuring environments, see [Use multiple environments in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-9.0).**
+:warning: :fire: **Don't enable the Developer Exception Page **unless the app is running in the Development environment**. Don't share detailed exception information publicly when the app runs in production. For more information on configuring environments, see [Use multiple environments in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-11.0).**
 
 The Developer Exception Page can include the following information about the exception and the request:
 
@@ -1220,13 +1155,13 @@ The Developer Exception Page can include the following information about the exc
 - Headers
 - Endpoint metadata, if any
 
-The Developer Exception Page isn't guaranteed to provide any information. Use [Logging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-9.0) for complete error information.
+The Developer Exception Page isn't guaranteed to provide any information. Use [Logging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-11.0) for complete error information.
 
-#### [Exception handler](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors#exception-handler)
+#### [Exception handler](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#exception-handler)
 
-In non-development environments, use the [Exception Handler Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-9.0#exception-handler-page) to produce an error payload. To configure the `Exception Handler Middleware`, call [UseExceptionHandler](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.exceptionhandlerextensions.useexceptionhandler).
+In non-development environments, use the [Exception Handler Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-11.0#exception-handler-page) to produce an error payload. To configure the `Exception Handler Middleware`, call [UseExceptionHandler](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.exceptionhandlerextensions.useexceptionhandler).
 
-For example, the following code changes the app to respond with an [RFC 7807](https://tools.ietf.org/html/rfc7807)\-compliant payload to the client. For more information, see the [Problem Details](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-9.0#problem-details) section later in this article.
+For example, the following code changes the app to respond with an [RFC 7807](https://tools.ietf.org/html/rfc7807)\-compliant payload to the client. For more information, see the [Problem Details](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#problem-details) section later in this article.
 
 ```cs
 //Adds a middleware to the pipeline that will catch exceptions, log them, and re-execute
@@ -1255,7 +1190,7 @@ Nell'esempio precedente, quando si effettua una `GET` sull'endpoint `/exception`
 
 :memo: :fire: **Importante**: se non fosse stato configurato il middleware `ExceptionHandler`, in caso di errore interno del server (eccezione), sarebbe stata restituita al chiamate una pagina con i dettagli sull'eccezione avvenuta in fase di `Development`, e una risposta senza body, ma solo con il codice d'errore (`500 INTERNAL SERVER ERROR`) in fase di `Production`.
 
-#### [Client and Server error responses](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors#client-and-server-error-responses)
+#### [Client and Server error responses](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#client-and-server-error-responses)
 
 Consider the following Minimal API app:
 
@@ -1276,13 +1211,13 @@ app.MapGet("/pizza/{id}", async (int id, PizzaDb db) =>
    .Produces(StatusCodes.Status400BadRequest);
 ```
 
-The `/pizza/{id}` endpoint produces `200 OK` with a `json` representation of `Pizza` when `id` is greater than `0`, otherwise a `400 BAD REQUEST` status code **without a response body**. For more information about creating a response, see [Create responses in Minimal API apps](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/responses).
+The `/pizza/{id}` endpoint produces `200 OK` with a `json` representation of `Pizza` when `id` is greater than `0`, otherwise a `400 BAD REQUEST` status code **without a response body**. For more information about creating a response, see [Create responses in Minimal API apps](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/responses?view=aspnetcore-11.0).
 
 :memo: **Per impostazione predefinita quando un'applicazione ASP.NET Core restituisce un codice di errore HTTP compreso tra 400 e 599, la risposta ha un body vuoto (c'è solo l'header del messaggio HTTP con il codice d'errore). Per fare in modo che la risposta dell'applicazione abbia un body non vuoto in caso di errore si può procedere con una modifica dello `Status Code Pages middleware`, come indicato di seguito**
 
-The [`Status Code Pages middleware`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-9.0#sestatuscodepages) can be configured to produce a common body content, **when empty**, for all HTTP client (`400`\-`499`) or server (`500` \-`599`) responses. The middleware is configured by calling the [UseStatusCodePages](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.statuscodepagesextensions.usestatuscodepages) extension method.
+The [`Status Code Pages middleware`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-11.0#sestatuscodepages) can be configured to produce a common body content, **when empty**, for all HTTP client (`400`\-`499`) or server (`500` -`599`) responses. The middleware is configured by calling the [UseStatusCodePages](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.statuscodepagesextensions.usestatuscodepages) extension method.
 
-For example, the following example changes the app to respond with an [RFC 7807](https://tools.ietf.org/html/rfc7807)\-compliant payload to the client for all client and server responses, including routing errors (for example, `404 NOT FOUND`). For more information, see the [Problem Details](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-9.0#problem-details) section.
+For example, the following example changes the app to respond with an [RFC 7807](https://tools.ietf.org/html/rfc7807)\-compliant payload to the client for all client and server responses, including routing errors (for example, `404 NOT FOUND`). For more information, see the [Problem Details](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/handle-errors?view=aspnetcore-11.0#problem-details) section.
 
 ```cs
 //Adds a StatusCodePages middleware with the specified handler that checks for responses with 

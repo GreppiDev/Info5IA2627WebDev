@@ -17,7 +17,7 @@ Si aggiungano i pacchetti (dalla shell posizionata sulla cartella del progetto):
  dotnet add package Microsoft.EntityFrameworkCore.InMemory
  dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
  dotnet add package Microsoft.AspNetCore.OpenApi
- dotnet add package NSwag.AspNetCore
+ dotnet add package Scalar.AspNetCore
 ```
 
 Si noti che, nel caso in cui si utilizzi il template `web`, ossia il template per applicazioni ASP.NET Core vuoto, occorre esplicitamente installare anche il pacchetto `Microsoft.AspNetCore.OpenApi`; nel caso si utilizzi il template `webapi`, il pacchetto per il supporto ad `OpenApi` è già installato.
@@ -25,20 +25,13 @@ Si noti che, nel caso in cui si utilizzi il template `web`, ossia il template pe
 Si modifichi il codice prodotto dal template come segue:
 
 ```cs
+using Scalar.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -48,31 +41,21 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
-
 app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
+
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");
 app.Run();
 ```
 
-Si modifichi il file `launchSettings.json` come segue, con le impostazioni per far partire il browser direttamente sulle pagine di Swagger:
+Si modifichi il file `launchSettings.json` come segue, con le impostazioni per far partire il browser direttamente sulle pagine di Scalar:
 
 ```json
 {
@@ -83,7 +66,7 @@ Si modifichi il file `launchSettings.json` come segue, con le impostazioni per f
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5028",
-      "launchUrl": "swagger",
+      "launchUrl": "scalar",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -93,7 +76,7 @@ Si modifichi il file `launchSettings.json` come segue, con le impostazioni per f
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "applicationUrl": "https://localhost:7293;http://localhost:5028",
-      "launchUrl": "swagger",
+      "launchUrl": "scalar",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -141,25 +124,16 @@ class PizzaDb(DbContextOptions options) : DbContext(options)
 Si modifichi il file `Program.cs` come segue:
 
 ```cs
-
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV1.Model;
 using PizzaStoreV1.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -173,21 +147,11 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");
@@ -227,7 +191,7 @@ app.MapDelete("/pizza/{id}", async (PizzaDb db, int id) =>
 app.Run();
 ```
 
-Si testi il programma con Swagger per verificarne il corretto funzionamento.
+Si testi il programma con Scalar per verificarne il corretto funzionamento.
 
 ### Utilizzo del database Sqlite
 
@@ -242,10 +206,10 @@ Si modifichi l’applicazione, usando `SQLite` come Data Provider di `EntityFram
 Nel file `Program.cs` si modifichi il codice con le istruzioni indicate di seguito:
 
 ```cs
-
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV1.Data;
 using PizzaStoreV1.Model;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👈 si aggiunga la connection string
@@ -254,15 +218,6 @@ var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "D
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -279,21 +234,11 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");
@@ -385,10 +330,10 @@ class PizzaDb(DbContextOptions options) : DbContext(options)
 
 ```ps1
 dotnet tool install --global dotnet-ef
-# nel caso in cui occorra installare una versione specifica, ad esempio la 8.0.11
-dotnet tool install --global dotnet-ef --version 8.0.11  
+# nel caso in cui occorra installare una versione specifica, ad esempio la 11.0.0
+dotnet tool install --global dotnet-ef --version 11.0.0
 # nel caso in cui occorra effettuare un aggiornamento di dotnet-ef
-dotnet tool update --global dotnet-ef 
+dotnet tool update --global dotnet-ef
 # nel caso in cui occorra effettuare la rimozione di dotnet-ef
 dotnet tool uninstall dotnet-ef --global
 ```
@@ -407,41 +352,37 @@ A questo punto è possibile far partire nuovamente il progetto, per verificare c
 
 Si crei una nuova versione del progetto `PizzaStore`, denominato `PizzaStoreV2`, all'interno della stessa soluzione. Per l'aggiunta del progetto alla soluzione si può procedere con le funzionalità di `C# Dev Kit`, oppure con i comandi della `.NET CLI`, come visto in precedenza. In entrambi i casi il template da utilizzare è `webapi`.
 
-Si installino (dalla shell posizionata sulla cartella del nuovo progetto) i pacchetti:
+> :memo: **Passaggio da Pomelo a Microting (`.NET 10+` e `.NET 11`):** il pacchetto storico `Pomelo.EntityFrameworkCore.MySql` si è fermato alla versione `9.0.0` (compatibile solo con EF Core 9). La manutenzione ufficiale è proseguita con gli stessi autori, stessa licenza MIT e stesso repository ([`microting/Pomelo.EntityFrameworkCore.MySql`](https://github.com/microting/Pomelo.EntityFrameworkCore.MySql)) sotto il nuovo nome **`Microting.EntityFrameworkCore.MySql`**. Il namespace e le API C# (`UseMySql(...)`, `MariaDbServerVersion`, `ServerVersion`) sono **identici**:
+>
+> - **`.NET 11` (`net11.0`)**: `Microting.EntityFrameworkCore.MySql` `11.0.0` (porta transitivamente `MySqlConnector` `3.0.0`, senza avvisi `NU1902`).
+> - **`Microsoft.EntityFrameworkCore.Design`**: va sempre allineato alla stessa major (`11.x`) del provider e configurato con `PrivateAssets="all"` (impostato di default con `dotnet add package`).
+> - **Pacchetti opzionali**: esistono solo se servono colonne JSON (`Microting.EntityFrameworkCore.MySql.Json.Microsoft` / `.Json.Newtonsoft`) o tipi geografici (`Microting.EntityFrameworkCore.MySql.NetTopologySuite`).
 
-:memo: :warning: :fire: **Attenzione**: Nel momento in cui si scrivono queste note la versione del pacchetto `Pomelo.EntityFrameworkCore.MySql` che funziona con `net9.0` è una versione di pre-release e, di conseguenza, anche i pacchetti relativi a `EntityFrameworkCore` devono essere portati ad una versione specifica, affinché `EF Core` possa correttamente effettuare la migrazione e l'aggiornamento del database.
+Si installino (dalla shell posizionata sulla cartella del nuovo progetto) i pacchetti per `.NET 11`:
 
 ```ps1
 # 👇 serve per avere informazioni diagnostiche per EntityFrameworkCore
 # è usato quando si utilizzano i middleware come:
 #   app.UseDeveloperExceptionPage();
 #   app.UseDatabaseErrorPage();
- dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
+dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
 
-# 👇 serve per il supporto a OpenApi, ma se si utilizza il template webapi, oppure il Dev Kit per creare il progetto è già installato
- dotnet add package Microsoft.AspNetCore.OpenApi 
+# 👇 serve per il supporto a OpenApi (se si usa il template webapi è già installato)
+dotnet add package Microsoft.AspNetCore.OpenApi
 
-# 👈 serve per il supporto a Swagger
- dotnet add package NSwag.AspNetCore 
+# 👇 serve per la visualizzazione interattiva della documentazione OpenAPI con Scalar
+dotnet add package Scalar.AspNetCore
 
-# 👇 serve per effettuare il Design, ossia il progetto del database, ad esempio, mediante una migrazione
- dotnet add package Microsoft.EntityFrameworkCore.Design
+# 👇 serve per effettuare il Design, ossia il progetto del database tramite migrazioni (deve avere la stessa major del provider)
+dotnet add package Microsoft.EntityFrameworkCore.Design
 
-# 👇 serve per poter utilizzare MySQL oppure MariaDb come database provider di EF Core
-# https://github.com/PomeloFoundation/Pomelo.EntityFrameworkCore.MySql
+# 👇 provider EF Core per MySQL / MariaDB (continuazione ufficiale di Pomelo per .NET 10/11)
+# https://github.com/microting/Pomelo.EntityFrameworkCore.MySql
 # https://learn.microsoft.com/en-us/ef/core/providers/?tabs=dotnet-core-cli
-dotnet add package Pomelo.EntityFrameworkCore.MySql
+dotnet add package Microting.EntityFrameworkCore.MySql
 ```
 
-Versione di pre-release dei pacchetti NuGet da utilizzare per integrare il pacchetto `Pomelo.EntityFrameworkCore.MySql` in `net9.0`
-
-```ps1
- dotnet add package Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore --version 9.0.0-preview.1.24081.5
- dotnet add package Microsoft.AspNetCore.OpenApi 
- dotnet add package NSwag.AspNetCore 
- dotnet add package Microsoft.EntityFrameworkCore.Design --version 9.0.0-preview.1.24081.2
- dotnet add package Pomelo.EntityFrameworkCore.MySql --version 9.0.0-preview.1
-```
+> :memo: **Nota su Docker e MariaDB:** avviando il database con `mariadb:lts` in Docker, è possibile verificare la versione esatta del server con `docker exec <nome_container> mariadb --version` (es. `12.3.3-MariaDB`) da riportare poi in `new MariaDbServerVersion(...)`.
 
 Si copi il contenuto di `Program.cs` e delle cartelle `Model` e `Data` nel progetto `PizzaStoreV2`, modificando opportunamente i namespace, con il nome del nuovo progetto. A questo punto, occorre modificare la parte di codice relativa al database provider e sostituire le istruzioni relative a `Sqlite`, con quelle relative a `MariaDb`. Di seguito si riportano i file del progetto con le modifiche apportate.
 
@@ -477,7 +418,7 @@ namespace PizzaStoreV2.Data;
 //use Primary Constructor: https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/tutorials/primary-constructors
 class PizzaDb(DbContextOptions options) : DbContext(options)
 {
-	public DbSet<Pizza> Pizzas { get; set; }=null!;
+	public DbSet<Pizza> Pizzas { get; set; } = null!;
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{
 		modelBuilder.Entity<Pizza>().HasData(
@@ -506,25 +447,16 @@ public class Pizza
 using Microsoft.EntityFrameworkCore;
 using PizzaStoreV2.Model;
 using PizzaStoreV2.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 // 👇 si aggiunga la connection string
-//var connectionString = builder.Configuration.GetConnectionString("Pizzas") ?? "Data Source=DefaultPizzas.db";
-var connectionString = builder.Configuration.GetConnectionString("PizzasV2");
+var connectionString = builder.Configuration.GetConnectionString("PizzasV2")
+	?? throw new InvalidOperationException("Connection string 'PizzasV2' not found.");
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//AddOpenApi si può usare dalla versione 9 in poi di dotnet
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "PizzaStoreAPIv1";
-	config.Title = "PizzaStore v1";
-	config.Version = "v1";
-});
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -532,44 +464,36 @@ if (builder.Environment.IsDevelopment())
 	//il servizio AddDatabaseDeveloperPageExceptionFilter andrebbe usato solo in fase di testing e non in produzione.
 	builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 }
-// 👇 si aggiunga il DbContext per l'accesso al database
-//builder.Services.AddDbContext<PizzaDb>(options => options.UseInMemoryDatabase("items"));  
-// 👇 si modifichi il DbContext per l'accesso al database 
-//builder.Services.AddDbContext<PizzaDb>(options => options.UseSqlite(connectionString));
 
-// 👇 autodetect della versione del server di MariaDb
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Pomelo
-builder.Services.AddDbContext<PizzaDb>(
-		dbContextOptions => dbContextOptions
-			.UseMySql(connectionString, serverVersion)
-			// The following three options help with debugging, but should
-			// be changed or removed for production.
+// 👇 versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione al DB
+// già durante builder.Build(), facendo fallire `dotnet ef migrations add` o `--no-connect` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+
+// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Microting
+builder.Services.AddDbContext<PizzaDb>(dbContextOptions =>
+{
+	dbContextOptions.UseMySql(connectionString, serverVersion);
+
+	if (builder.Environment.IsDevelopment())
+	{
+		// Opzioni utili in sviluppo per il debug delle query SQL, da non abilitare in produzione
+		dbContextOptions
 			.LogTo(Console.WriteLine, LogLevel.Information)
 			.EnableSensitiveDataLogging()
-			.EnableDetailedErrors()
-	);
+			.EnableDetailedErrors();
+	}
+});
 
 var app = builder.Build();
 
-
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-
-	{
-		config.DocumentTitle = "PizzaStore API v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 app.MapGet("/", () => "Hello World!");
