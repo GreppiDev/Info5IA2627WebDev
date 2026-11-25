@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyApi.Model;
 using MyApi.Data;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,17 +17,7 @@ var connectionString = $"Server={host};Port={port};Database={database};User Id={
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//AddOpenApi si può usare dalla versione 9 in poi di dotnet
-//builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-//adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.DocumentName = "PizzaStoreAPIv1";
-    config.Title = "PizzaStore v1";
-    config.Version = "v1";
-});
+builder.Services.AddOpenApi();
 
 //adding services to the container
 if (builder.Environment.IsDevelopment())
@@ -35,9 +26,13 @@ if (builder.Environment.IsDevelopment())
     builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 }
 
-// 👇 autodetect della versione del server di MariaDb
-var serverVersion = ServerVersion.AutoDetect(connectionString);
-// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Pomelo
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
+// 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Microting (ex Pomelo)
 builder.Services.AddDbContext<PizzaDb>(dbContextOptions =>
 {
     dbContextOptions.UseMySql(connectionString, serverVersion);
@@ -56,28 +51,20 @@ var app = builder.Build();
 
 //app.UseHttpsRedirection();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for Scalar and OpenAPI
 if (app.Environment.IsDevelopment())
 {
     //adding middleware for OpenAPI
-    //app.MapOpenApi();
-    //adding middleware for Swagger
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-
-    {
-        config.DocumentTitle = "PizzaStore API v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapOpenApi();
+    //adding middleware for Scalar
+    app.MapScalarApiReference();
 }
 //creations of API Endpoint Routes
 // prima: app.MapGet("/", () => "Hello World!");
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapGet("/", () => Results.Redirect("/swagger"));
+    app.MapGet("/", () => Results.Redirect("/scalar"));
 }
 else
 {

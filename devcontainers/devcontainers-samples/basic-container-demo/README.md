@@ -119,25 +119,19 @@ Esempio di Dev Container per sviluppo ASP.NET Core senza database esterno: **Mar
    Questo progetto usa **Entity Framework Core**: prima di avviare l’API conviene creare lo schema DB con le migrazioni.
    Nel devcontainer `dotnet-ef` è già installato come tool.
 
-   Nota (runtime .NET): il progetto ha come target `net9.0`. Anche se nel Dev Container è presente l’SDK .NET 10, per eseguire `dotnet ef` serve anche il runtime **.NET 9** (`Microsoft.NETCore.App`).
-   Se compare l’errore:
-
-   - “You must install or update .NET to run this application”
-   - “Framework: 'Microsoft.NETCore.App', version '9.0.0' … The following frameworks were found: 10.x …”
-
-   significa che manca il runtime 9: eseguire “Dev Containers: Rebuild Container” (oppure installare il runtime .NET 9 nel proprio ambiente).
+   Nota (runtime .NET): il progetto ha come target `net11.0`, allineato all'SDK .NET 11 presente nel Dev Container.
 
    Nota (tool `dotnet-ef`): se il tool globale ha una major diversa dai package EF del progetto, di solito funziona comunque; in caso di problemi di compatibilità, installare `dotnet-ef` allineato alla versione di EF Core usata dal progetto.
 
     **Pin della versione di `dotnet-ef` (consigliato per coerenza)**
 
-    Il progetto usa EF Core **9.x** (vedi `MyApi.csproj`), quindi un pin tipico è `9.0.12`.
+    Il progetto usa EF Core **11.x** (vedi `MyApi.csproj`), quindi un pin tipico è `11.0.0`.
 
     - Pin **globale** (vale per tutto l’utente `vscode` nel devcontainer):
 
        ```bash
        dotnet tool uninstall --global dotnet-ef
-       dotnet tool install --global dotnet-ef --version 9.0.12
+       dotnet tool install --global dotnet-ef --version 11.0.0
        dotnet ef --version
        ```
 
@@ -148,7 +142,7 @@ Esempio di Dev Container per sviluppo ASP.NET Core senza database esterno: **Mar
        dotnet new tool-manifest
 
        # Installa/pinna il tool in .config/dotnet-tools.json
-       dotnet tool install dotnet-ef --version 9.0.12
+       dotnet tool install dotnet-ef --version 11.0.0
 
        # Usa il tool locale
        dotnet tool run dotnet-ef --version

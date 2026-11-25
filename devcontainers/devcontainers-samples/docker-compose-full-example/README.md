@@ -136,10 +136,10 @@ mariadb -h mariadb -P 3306 -u pizza_user -ppizza_pass -e "SELECT CURRENT_USER();
    dotnet run --project src/MyApi/MyApi.csproj
    ```
 
-   In Development, l’endpoint `/` reindirizza a Swagger UI.
+   In Development, l’endpoint `/` reindirizza a Scalar.
    Con port forwarding attivo, apri:
-   - `http://localhost:5000/swagger`
-   - `https://localhost:5001/swagger`
+   - `http://localhost:5000/scalar`
+   - `https://localhost:5001/scalar`
 
 ## 🧠 Come funziona (in breve)
 
@@ -655,9 +655,9 @@ In tal caso:
 dotnet run --project src/MyApi/MyApi.csproj
 ```
 
-Poi aprire Swagger:
+Poi aprire Scalar:
 
-- `http://localhost:5000/swagger`
+- `http://localhost:5000/scalar`
 
 ## 🔌 Collegarsi al DB dall'host
 

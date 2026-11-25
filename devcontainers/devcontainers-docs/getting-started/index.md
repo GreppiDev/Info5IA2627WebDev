@@ -149,7 +149,7 @@ Queste immagini coprono i principali linguaggi e framework:
 
 L'elenco completo delle immagini ufficiali è disponibile nella [sezione `src` delle immagini](https://github.com/devcontainers/images/tree/main/src), e include dettagli su quali versioni degli SDK e runtime sono incluse in ciascuna immagine.
 
-> Nota :memo: Per rendere più veloce la creazione dei Dev Containers mostrati negli esempi riportati di seguito è opportuno scaricare preventivamente le immagini base (es. tramite `docker pull mcr.microsoft.com/devcontainers/dotnet:10.0-noble`) prima di avviare i Dev Container, in modo da evitare tempi di download durante la prima creazione. L'elenco delle immagini di base dei Dev Containers è disponibile anche su Docker Hub all'indirizzo [hub.docker.com/r/microsoft/devcontainers](https://hub.docker.com/r/microsoft/devcontainers).
+> Nota :memo: Per rendere più veloce la creazione dei Dev Containers mostrati negli esempi riportati di seguito è opportuno scaricare preventivamente le immagini base (es. tramite `docker pull mcr.microsoft.com/devcontainers/dotnet:11.0-noble`) prima di avviare i Dev Container, in modo da evitare tempi di download durante la prima creazione. L'elenco delle immagini di base dei Dev Containers è disponibile anche su Docker Hub all'indirizzo [hub.docker.com/r/microsoft/devcontainers](https://hub.docker.com/r/microsoft/devcontainers).
 
 ## Struttura di un Dev Container
 
@@ -204,7 +204,7 @@ Il file `devcontainer.json` rappresenta il cuore della configurazione di un Dev 
 ```json
 {
     "name": "Il mio Dev Container",
-    "image": "mcr.microsoft.com/devcontainers/dotnet:10.0-noble",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:11.0-noble",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
@@ -443,7 +443,7 @@ In questo caso, Docker vede l'intera directory `my-project/` (grazie a `context:
 #### Esempio di Dockerfile personalizzato
 
 ```Dockerfile
-FROM mcr.microsoft.com/devcontainers/dotnet:10.0-noble
+FROM mcr.microsoft.com/devcontainers/dotnet:11.0-noble
 
 USER root
 
@@ -470,14 +470,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     httpie \
     yq \
     && rm -rf /var/lib/apt/lists/*
-
-# Se il progetto ha come target net9.0 anche con SDK .NET 10 serve il runtime .NET 9 per eseguire app/tool net9.
-# Installiamo quindi i runtime 9 affiancati a quelli 10 nel DOTNET_ROOT del container.
-RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
-    && chmod +x /tmp/dotnet-install.sh \
-    && /tmp/dotnet-install.sh --install-dir /usr/share/dotnet --runtime dotnet --channel 9.0 --no-path --skip-non-versioned-files \
-    && /tmp/dotnet-install.sh --install-dir /usr/share/dotnet --runtime aspnetcore --channel 9.0 --no-path --skip-non-versioned-files \
-    && rm /tmp/dotnet-install.sh
 
 # Configura Git (opzionale)
 RUN git config --system init.defaultBranch main
