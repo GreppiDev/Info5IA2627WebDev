@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoApi.Endpoints;
 using TodoApi.Models;
 
@@ -7,16 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//aggiunge il servizio che permette ad OpenAPI di leggere i metadati delle API
-builder.Services.AddEndpointsApiExplorer();
-//configura il servizio OpenAPI
-builder.Services.AddOpenApiDocument(config =>
-	{
-		config.Title = "Todo API con form e file v1";
-		config.DocumentName = "Todo API con form e file";
-		config.Version = "v1";
-	}
-);
 if (builder.Environment.IsDevelopment())
 {
 	builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -33,21 +24,11 @@ app.UseHttpsRedirection();
 
 if (app.Environment.IsDevelopment())
 {
-	//permette di ottenere una rotta dove vedere la documentazione delle API secondo lo standard OpenAPI
 	app.MapOpenApi();
-	//permette a Swagger (NSwag) di generare un file JSON con le specifiche delle API
-	app.UseOpenApi();
-	//permette di configurare l'interfaccia SwaggerUI (l'interfaccia grafica web di Swagger (NSwag) che permette di interagire con le API)
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "Todo API con form e file v1";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
-// Serve static files after Swagger
+// Serve static files after Scalar
 
 // Middleware per file statici
 
@@ -66,7 +47,6 @@ if (app.Environment.IsDevelopment())
 app
 .MapGroup("")
 .MapTodosEndpoints()
-.WithOpenApi()
 .WithTags("Public API");
 //-------- End of API management ------------
 

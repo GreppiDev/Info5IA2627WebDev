@@ -1,17 +1,11 @@
 using DistributedCacheDemo.Models;
 using Microsoft.Extensions.Caching.Hybrid;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddOpenApiDocument(config =>
-{
-    config.Title = "Hybrid Cache Demo v1";
-    config.DocumentName = "Hybrid Cache Demo API";
-    config.Version = "v1";
-});
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {
@@ -43,14 +37,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseOpenApi();
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Hybrid Cache Demo v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapScalarApiReference();
 
     app.UseDeveloperExceptionPage();
 }
