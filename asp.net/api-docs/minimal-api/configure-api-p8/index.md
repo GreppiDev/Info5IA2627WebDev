@@ -12,7 +12,7 @@
   - [Raccomandazioni: Quale Metodo Usare?](#raccomandazioni-quale-metodo-usare)
   - [Tabella Riepilogativa dei Metodi](#tabella-riepilogativa-dei-metodi)
   - [Applicazione Pratica: AziendaAPI con SQL Raw](#applicazione-pratica-aziendaapi-con-sql-raw)
-  - [Considerazioni sul provider Pomelo](#considerazioni-sul-provider-pomelo)
+  - [Considerazioni sul provider Microting (ex Pomelo)](#considerazioni-sul-provider-microting-ex-pomelo)
   - [Conclusioni](#conclusioni)
 
 ## Obiettivi
@@ -21,14 +21,14 @@
 2. Conoscere i diversi metodi offerti da EF Core per eseguire query e comandi SQL raw.
 3. Imparare a utilizzare `FromSqlRaw`, `FromSqlInterpolated`, `SqlQueryRaw<T>` e `DbContext.Database.ExecuteSql*`.
 4. Capire i rischi di sicurezza (SQL Injection) e come mitigarli.
-5. Applicare queste tecniche per implementare endpoint CRUD in una Minimal API collegata a MariaDB tramite Pomelo.
+5. Applicare queste tecniche per implementare endpoint CRUD in una Minimal API collegata a MariaDB tramite Microting (ex Pomelo).
 
 ## Prerequisiti
 
 - Conoscenza di base di C# e ASP.NET Minimal API.
 - Esperienza con EF Core e LINQ per query su database.
 - Comprensione dei concetti base di SQL (SELECT, INSERT, UPDATE, DELETE).
-- Familiarità con il setup di un progetto Minimal API con EF Core e Pomelo per MariaDB.
+- Familiarità con il setup di un progetto Minimal API con EF Core e `Microting.EntityFrameworkCore.MySql` per MariaDB.
 
 ## Introduzione: Perché SQL Raw?
 
@@ -39,7 +39,7 @@
     - **Stored Procedure/Funzioni:** Eseguire stored procedure o funzioni definite nel database.
     - **Bulk Operations:** Operazioni massicce (anche se EF Core ha migliorato il batching, SQL raw può dare più controllo).
 - **Attenzione alla Sicurezza:** Il rischio principale con SQL raw è l'**SQL Injection**. Vedremo come EF Core ci aiuta a prevenirlo.
-- **Contesto:** Useremo EF Core con il provider Pomelo per MariaDB in un'applicazione ASP.NET Minimal API.
+- **Contesto:** Useremo EF Core 11 con il provider `Microting.EntityFrameworkCore.MySql` per MariaDB in un'applicazione ASP.NET Minimal API.
 
 ## Metodi EF Core per Query SQL Raw che Restituiscono Tipi Entità
 
@@ -95,10 +95,10 @@
             }
             ```
 
-        - **Esecuzione Stored Procedure (Esempio MariaDB/Pomelo):** `FromSql` può chiamare Stored Procedures che restituiscono dati che possono essere mappate all'entità.
+        - **Esecuzione Stored Procedure (Esempio MariaDB/Microting):** `FromSql` può chiamare Stored Procedures che restituiscono dati che possono essere mappate all'entità.
 
             ```cs
-            // Parametro specifico per Pomelo/MySQL
+            // Parametro specifico per Microting/MySqlConnector
             var userParam = new MySqlParameter("@user", "johndoe");
 
             // Assumendo che 'GetMostPopularBlogsForUser' restituisca colonne che si mappano sull'entità Blog
@@ -108,7 +108,7 @@
                                      .ToListAsync();
             ```
 
-            *(Nota: L'uso esatto di `MySqlParameter` o l'interpolazione diretta dipende da come Pomelo gestisce i parametri nelle chiamate SP. L'interpolazione è generalmente preferita se supportata).*
+            *(Nota: L'uso esatto di `MySqlParameter` o l'interpolazione diretta dipende da come il provider gestisce i parametri nelle chiamate SP. L'interpolazione è generalmente preferita se supportata).*
     - **Limitazioni Importanti:**
 
         - `FromSqlRaw`/`FromSql` funzionano **solo direttamente su un `DbSet<T>`**. Non possono essere applicati dopo altre operazioni LINQ (es. dopo un `.Where()`).
@@ -320,7 +320,7 @@
             // SQL Server: GETDATE()
             // MariaDB/MySQL/PostgreSQL: NOW()
             // SQLite: DATETIME('now')
-            // Assumendo MariaDB/MySQL con Pomelo:
+            // Assumendo MariaDB/MySQL con Microting (ex Pomelo):
             var databaseTime = await context.Database.SqlQuery<DateTime>(
                 $"SELECT NOW()")
                 .FirstOrDefaultAsync(); // Usiamo FirstOrDefaultAsync per ottenere un singolo valore
@@ -510,10 +510,18 @@ Si consideri il progetto di Minimal API ASP.NET `AziendaAPI` già sviluppato pre
         });
         ```
 
-## Considerazioni sul provider Pomelo
+## Considerazioni sul provider Microting (ex Pomelo)
 
-- Il provider Pomelo (`Pomelo.EntityFrameworkCore.MySql`) permette a EF Core di comunicare con MariaDB (e MySQL).
-- I metodi EF Core per SQL raw (`FromSql*`, `SqlQuery*`, `ExecuteSql*`) sono **indipendenti dal provider**. Funzionano allo stesso modo sia con SQL Server, PostgreSQL, SQLite o MariaDB (con Pomelo).
+- Per EF Core 10 e 11 (`.NET 10` / `.NET 11`), il pacchetto `Pomelo.EntityFrameworkCore.MySql` (fermo alla versione `9.0.0`) è stato sostituito dal proseguimento ufficiale **`Microting.EntityFrameworkCore.MySql`** (`11.0.0` per `.NET 11`), mantenuto dagli stessi autori con identico namespace e identiche API (`UseMySql`, `MariaDbServerVersion`, `MySqlParameter`).
+- Nella configurazione di `AddDbContext`, si consiglia di dichiarare esplicitamente `new MariaDbServerVersion(new Version(12, 3, 3))` anziché `ServerVersion.AutoDetect(...)`, così i comandi `dotnet ef` funzionano anche quando il container MariaDB è spento (mantenendo eventualmente `AutoDetect` commentato come alternativa):
+
+```csharp
+// Versione esplicita del server MariaDB (consigliata per compatibilità offline con dotnet ef)
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
+```
+- I metodi EF Core per SQL raw (`FromSql*`, `SqlQuery*`, `ExecuteSql*`) sono **indipendenti dal provider**. Funzionano allo stesso modo sia con SQL Server, PostgreSQL, SQLite o MariaDB (con Microting).
 - Quello che cambia è la **sintassi SQL specifica** che si potrebbe dover usare all'interno delle stringhe SQL raw se si usano funzionalità particolari di MariaDB (es. funzioni specifiche, sintassi particolari). Per query/comandi standard ANSI SQL, non ci sono differenze significative.
 
 ## Conclusioni

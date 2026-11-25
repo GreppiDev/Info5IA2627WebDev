@@ -103,16 +103,16 @@ Each delegate can perform operations before and after the next delegate. Excepti
 
 #### Short-circuiting the request pipeline
 
-When a delegate doesn't pass a request to the next delegate, it's called *short-circuiting the request pipeline*. Short-circuiting is often desirable because it avoids unnecessary work. For example, [Static File Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-9.0) can act as a *terminal middleware* by processing a request for a static file and short-circuiting the rest of the pipeline. Middleware added to the pipeline before the middleware that terminates further processing still processes code after their `next.Invoke` statements. However, see the following warning about attempting to write to a response that has already been sent.
+When a delegate doesn't pass a request to the next delegate, it's called *short-circuiting the request pipeline*. Short-circuiting is often desirable because it avoids unnecessary work. For example, [Static File Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-11.0) can act as a *terminal middleware* by processing a request for a static file and short-circuiting the rest of the pipeline. Middleware added to the pipeline before the middleware that terminates further processing still processes code after their `next.Invoke` statements. However, see the following warning about attempting to write to a response that has already been sent.
 
-:warning: **Warning**: Don't call `next.Invoke` during or after the response has been sent to the client. After an [HttpResponse](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse) has started, changes result in an exception. For example, [setting headers and a status code throw an exception](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices?view=aspnetcore-9.0#do-not-modify-the-status-code-or-headers-after-the-response-body-has-started) after the response starts. Writing to the response body after calling `next`:
+:warning: **Warning**: Don't call `next.Invoke` during or after the response has been sent to the client. After an [HttpResponse](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse) has started, changes result in an exception. For example, [setting headers and a status code throw an exception](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/best-practices?view=aspnetcore-11.0#do-not-modify-the-status-code-or-headers-after-the-response-body-has-started) after the response starts. Writing to the response body after calling `next`:
 
 - May cause a protocol violation, such as writing more than the stated `Content-Length`.
 - May corrupt the body format, such as writing an HTML footer to a CSS file.
 
 [HasStarted](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.http.httpresponse.hasstarted) is a useful hint to indicate if headers have been sent or the body has been written to.
 
-For more information, see [Short-circuit middleware after routing](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#short-circuit-middleware-after-routing).
+For more information, see [Short-circuit middleware after routing](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0#short-circuit-middleware-after-routing).
 
 #### Esempi di middleware
 
@@ -169,6 +169,7 @@ public class LoggingMiddleware
 
 ```cs
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoApiV2;
 using TodoApiV2.Middlewares;
 //creation of Web application builder
@@ -182,33 +183,15 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-// adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "TodoApiV2";
-	config.Title = "TodoAPI v2";
-	config.Version = "v1";
-});
 
 //creation of Web application
 var app = builder.Build();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "TodoAPI";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -222,7 +205,7 @@ app.MapGroup("/private/todos")
 //.RequireAuthorization();
 
 //alcuni esempi di rotte con gruppi presi dalla documentazione con qualche adattamento
-var all = app.MapGroup("").WithOpenApi();
+var all = app.MapGroup("");
 var org = all.MapGroup("{org}");
 var user = org.MapGroup("{user}");
 //questa è una GET sulla rotta definita da /{org}/{user}/
@@ -422,46 +405,46 @@ Per funzionalità trasversali/globali, come:
 
 ### Built-in middleware
 
-ASP.NET Core ships with the following middleware components. The *Order* column provides notes on middleware placement in the request processing pipeline and under what conditions the middleware may terminate request processing. When a middleware short-circuits the request processing pipeline and prevents further downstream middleware from processing a request, it's called a *terminal middleware*. For more information on short-circuiting, see the [Create a middleware pipeline with WebApplication](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-9.0#create-a-middleware-pipeline-with-webapplication) section.
+ASP.NET Core ships with the following middleware components. The *Order* column provides notes on middleware placement in the request processing pipeline and under what conditions the middleware may terminate request processing. When a middleware short-circuits the request processing pipeline and prevents further downstream middleware from processing a request, it's called a *terminal middleware*. For more information on short-circuiting, see the [Create a middleware pipeline with WebApplication](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-11.0#create-a-middleware-pipeline-with-webapplication) section.
 
 Expand table
 
 | Middleware | Description | Order |
 | --- |  --- |  --- |
-| [Authentication](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-9.0) | Provides authentication support. | Before `HttpContext.User` is needed. Terminal for OAuth callbacks. |
+| [Authentication](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity?view=aspnetcore-11.0) | Provides authentication support. | Before `HttpContext.User` is needed. Terminal for OAuth callbacks. |
 | [Authorization](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.authorizationappbuilderextensions.useauthorization) | Provides authorization support. | Immediately after the Authentication Middleware. |
-| [Cookie Policy](https://learn.microsoft.com/en-us/aspnet/core/security/gdpr?view=aspnetcore-9.0) | Tracks consent from users for storing personal information and enforces minimum standards for cookie fields, such as `secure` and `SameSite`. | Before middleware that issues cookies. Examples: Authentication, Session, MVC (TempData). |
-| [CORS](https://learn.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-9.0) | Configures Cross-Origin Resource Sharing. | Before components that use CORS. `UseCors` currently must go before `UseResponseCaching` due to [this bug](https://github.com/dotnet/aspnetcore/issues/23218). |
+| [Cookie Policy](https://learn.microsoft.com/en-us/aspnet/core/security/gdpr?view=aspnetcore-11.0) | Tracks consent from users for storing personal information and enforces minimum standards for cookie fields, such as `secure` and `SameSite`. | Before middleware that issues cookies. Examples: Authentication, Session, MVC (TempData). |
+| [CORS](https://learn.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-11.0) | Configures Cross-Origin Resource Sharing. | Before components that use CORS. `UseCors` currently must go before `UseResponseCaching` due to [this bug](https://github.com/dotnet/aspnetcore/issues/23218). |
 | [DeveloperExceptionPage](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.developerexceptionpagemiddleware) | Generates a page with error information that is intended for use only in the Development environment. | Before components that generate errors. The project templates automatically register this middleware as the first middleware in the pipeline when the environment is Development. |
-| [Diagnostics](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-9.0) | Several separate middlewares that provide a developer exception page, exception handling, status code pages, and the default web page for new apps. | Before components that generate errors. Terminal for exceptions or serving the default web page for new apps. |
-| [Forwarded Headers](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-9.0) | Forwards proxied headers onto the current request. | Before components that consume the updated fields. Examples: scheme, host, client IP, method. |
-| [Health Check](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-9.0) | Checks the health of an ASP.NET Core app and its dependencies, such as checking database availability. | Terminal if a request matches a health check endpoint. |
-| [Header Propagation](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-9.0#header-propagation-middleware) | Propagates HTTP headers from the incoming request to the outgoing HTTP Client requests. |  |
-| [HTTP Logging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-9.0) | Logs HTTP Requests and Responses. | At the beginning of the middleware pipeline. |
+| [Diagnostics](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/error-handling?view=aspnetcore-11.0) | Several separate middlewares that provide a developer exception page, exception handling, status code pages, and the default web page for new apps. | Before components that generate errors. Terminal for exceptions or serving the default web page for new apps. |
+| [Forwarded Headers](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-11.0) | Forwards proxied headers onto the current request. | Before components that consume the updated fields. Examples: scheme, host, client IP, method. |
+| [Health Check](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-11.0) | Checks the health of an ASP.NET Core app and its dependencies, such as checking database availability. | Terminal if a request matches a health check endpoint. |
+| [Header Propagation](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-requests?view=aspnetcore-11.0#header-propagation-middleware) | Propagates HTTP headers from the incoming request to the outgoing HTTP Client requests. |  |
+| [HTTP Logging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/http-logging/?view=aspnetcore-11.0) | Logs HTTP Requests and Responses. | At the beginning of the middleware pipeline. |
 | [HTTP Method Override](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.httpmethodoverrideextensions) | Allows an incoming POST request to override the method. | Before components that consume the updated method. |
-| [HTTPS Redirection](https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-9.0#require-https) | Redirect all HTTP requests to HTTPS. | Before components that consume the URL. |
-| [HTTP Strict Transport Security (HSTS)](https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-9.0#http-strict-transport-security-protocol-hsts) | Security enhancement middleware that adds a special response header. | Before responses are sent and after components that modify requests. Examples: Forwarded Headers, URL Rewriting. |
-| [MVC](https://learn.microsoft.com/en-us/aspnet/core/mvc/overview?view=aspnetcore-9.0) | Processes requests with MVC/Razor Pages. | Terminal if a request matches a route. |
-| [OWIN](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/owin?view=aspnetcore-9.0) | Interop with OWIN-based apps, servers, and middleware. | Terminal if the OWIN Middleware fully processes the request. |
-| [Output Caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-9.0) | Provides support for caching responses based on configuration. | Before components that require caching. `UseRouting` must come before `UseOutputCaching`. `UseCORS` must come before `UseOutputCaching`. |
-| [Response Caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/middleware?view=aspnetcore-9.0) | Provides support for caching responses. This requires client participation to work. Use output caching for complete server control. | Before components that require caching. `UseCORS` must come before `UseResponseCaching`. Is typically not beneficial for UI apps such as Razor Pages because browsers generally set request headers that prevent caching. [Output caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-9.0) benefits UI apps. |
-| [Request Decompression](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/request-decompression?view=aspnetcore-9.0) | Provides support for decompressing requests. | Before components that read the request body. |
-| [Response Compression](https://learn.microsoft.com/en-us/aspnet/core/performance/response-compression?view=aspnetcore-9.0) | Provides support for compressing responses. | Before components that require compression. |
-| [Request Localization](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-9.0) | Provides localization support. | Before localization sensitive components. Must appear after Routing Middleware when using [RouteDataRequestCultureProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.localization.routing.routedatarequestcultureprovider). |
-| [Request Timeouts](https://learn.microsoft.com/en-us/aspnet/core/performance/timeouts?view=aspnetcore-9.0) | Provides support for configuring request timeouts, global and per endpoint. | `UseRequestTimeouts` must come after `UseExceptionHandler`, `UseDeveloperExceptionPage`, and `UseRouting`. |
-| [Endpoint Routing](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0) | Defines and constrains request routes. | Terminal for matching routes. |
+| [HTTPS Redirection](https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-11.0#require-https) | Redirect all HTTP requests to HTTPS. | Before components that consume the URL. |
+| [HTTP Strict Transport Security (HSTS)](https://learn.microsoft.com/en-us/aspnet/core/security/enforcing-ssl?view=aspnetcore-11.0#http-strict-transport-security-protocol-hsts) | Security enhancement middleware that adds a special response header. | Before responses are sent and after components that modify requests. Examples: Forwarded Headers, URL Rewriting. |
+| [MVC](https://learn.microsoft.com/en-us/aspnet/core/mvc/overview?view=aspnetcore-11.0) | Processes requests with MVC/Razor Pages. | Terminal if a request matches a route. |
+| [OWIN](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/owin?view=aspnetcore-11.0) | Interop with OWIN-based apps, servers, and middleware. | Terminal if the OWIN Middleware fully processes the request. |
+| [Output Caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-11.0) | Provides support for caching responses based on configuration. | Before components that require caching. `UseRouting` must come before `UseOutputCaching`. `UseCORS` must come before `UseOutputCaching`. |
+| [Response Caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/middleware?view=aspnetcore-11.0) | Provides support for caching responses. This requires client participation to work. Use output caching for complete server control. | Before components that require caching. `UseCORS` must come before `UseResponseCaching`. Is typically not beneficial for UI apps such as Razor Pages because browsers generally set request headers that prevent caching. [Output caching](https://learn.microsoft.com/en-us/aspnet/core/performance/caching/output?view=aspnetcore-11.0) benefits UI apps. |
+| [Request Decompression](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/request-decompression?view=aspnetcore-11.0) | Provides support for decompressing requests. | Before components that read the request body. |
+| [Response Compression](https://learn.microsoft.com/en-us/aspnet/core/performance/response-compression?view=aspnetcore-11.0) | Provides support for compressing responses. | Before components that require compression. |
+| [Request Localization](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/localization?view=aspnetcore-11.0) | Provides localization support. | Before localization sensitive components. Must appear after Routing Middleware when using [RouteDataRequestCultureProvider](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.localization.routing.routedatarequestcultureprovider). |
+| [Request Timeouts](https://learn.microsoft.com/en-us/aspnet/core/performance/timeouts?view=aspnetcore-11.0) | Provides support for configuring request timeouts, global and per endpoint. | `UseRequestTimeouts` must come after `UseExceptionHandler`, `UseDeveloperExceptionPage`, and `UseRouting`. |
+| [Endpoint Routing](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0) | Defines and constrains request routes. | Terminal for matching routes. |
 | [SPA](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.spaapplicationbuilderextensions.usespa) | Handles all requests from this point in the middleware chain by returning the default page for the Single Page Application (SPA) | Late in the chain, so that other middleware for serving static files, MVC actions, etc., takes precedence. |
-| [Session](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-9.0) | Provides support for managing user sessions. | Before components that require Session. |
-| [Static Files](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-9.0) | Provides support for serving static files and directory browsing. | Terminal if a request matches a file. |
-| [URL Rewrite](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/url-rewriting?view=aspnetcore-9.0) | Provides support for rewriting URLs and redirecting requests. | Before components that consume the URL. |
-| [W3CLogging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/w3c-logger/?view=aspnetcore-9.0) | Generates server access logs in the [W3C Extended Log File Format](https://www.w3.org/TR/WD-logfile.html). | At the beginning of the middleware pipeline. |
-| [WebSockets](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/websockets?view=aspnetcore-9.0) | Enables the WebSockets protocol. | Before components that are required to accept WebSocket requests. |
+| [Session](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/app-state?view=aspnetcore-11.0) | Provides support for managing user sessions. | Before components that require Session. |
+| [Static Files](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-11.0) | Provides support for serving static files and directory browsing. | Terminal if a request matches a file. |
+| [URL Rewrite](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/url-rewriting?view=aspnetcore-11.0) | Provides support for rewriting URLs and redirecting requests. | Before components that consume the URL. |
+| [W3CLogging](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/w3c-logger/?view=aspnetcore-11.0) | Generates server access logs in the [W3C Extended Log File Format](https://www.w3.org/TR/WD-logfile.html). | At the beginning of the middleware pipeline. |
+| [WebSockets](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/websockets?view=aspnetcore-11.0) | Enables the WebSockets protocol. | Before components that are required to accept WebSocket requests. |
 
 ### [Middleware in Minimal API apps](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/middleware)
 
-[`WebApplication`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/webapplication?view=aspnetcore-9.0) automatically adds the following middleware in [`Minimal API applications`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview?view=aspnetcore-9.0) depending on certain conditions:
+[`WebApplication`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/webapplication?view=aspnetcore-11.0) automatically adds the following middleware in [`Minimal API applications`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis/overview?view=aspnetcore-11.0) depending on certain conditions:
 
-- [`UseDeveloperExceptionPage`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.developerexceptionpagemiddleware) is added first when the [`HostingEnvironment`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-9.0) is `"Development"`.
+- [`UseDeveloperExceptionPage`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.diagnostics.developerexceptionpagemiddleware) is added first when the [`HostingEnvironment`](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/environments?view=aspnetcore-11.0) is `"Development"`.
 - [`UseRouting`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutingapplicationbuilderextensions.userouting) is added second if user code didn't already call `UseRouting` and if there are endpoints configured, for example `app.MapGet`.
 - [`UseEndpoints`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutingapplicationbuilderextensions.useendpoints) is added at the end of the middleware pipeline if any endpoints are configured.
 - [`UseAuthentication`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.authappbuilderextensions.useauthentication) is added immediately after `UseRouting` if user code didn't already call `UseAuthentication` and if [`IAuthenticationSchemeProvider`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.authentication.iauthenticationschemeprovider) can be detected in the service provider. `IAuthenticationSchemeProvider` is added by default when using [`AddAuthentication`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.authenticationservicecollectionextensions.addauthentication), and services are detected using [`IServiceProviderIsService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.dependencyinjection.iserviceproviderisservice).
@@ -538,7 +521,7 @@ app.Run(context =>
 
 Terminal middleware is middleware that runs if no endpoint handles the request.
 
-For information on antiforgery middleware in Minimal APIs, see [Prevent Cross-Site Request Forgery (XSRF/CSRF) attacks in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-9.0#afwma)
+For information on antiforgery middleware in Minimal APIs, see [Prevent Cross-Site Request Forgery (XSRF/CSRF) attacks in ASP.NET Core](https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery?view=aspnetcore-11.0#afwma)
 
 For more information about middleware see [ASP.NET Core Middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/), and the [list of built-in middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/#built-in-middleware) that can be added to applications.
 
@@ -546,7 +529,7 @@ For more information about Minimal APIs see [`Minimal APIs overview`](https://l
 
 ## [Routing](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing)
 
-Routing is responsible for matching incoming HTTP requests and dispatching those requests to the app's executable endpoints. [Endpoints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#endpoints) are the app's units of executable request-handling code. Endpoints are defined in the app and configured when the app starts. The endpoint matching process can extract values from the request's URL and provide those values for request processing. Using endpoint information from the app, routing is also able to generate URLs that map to endpoints.
+Routing is responsible for matching incoming HTTP requests and dispatching those requests to the app's executable endpoints. [Endpoints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0#endpoints) are the app's units of executable request-handling code. Endpoints are defined in the app and configured when the app starts. The endpoint matching process can extract values from the request's URL and provide those values for request processing. Using endpoint information from the app, routing is also able to generate URLs that map to endpoints.
 
 Apps can configure routing using:
 
@@ -554,7 +537,7 @@ Apps can configure routing using:
 - Razor Pages
 - SignalR
 - gRPC Services
-- Endpoint-enabled [middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-9.0) such as [Health Checks](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-9.0).
+- Endpoint-enabled [middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-11.0) such as [Health Checks](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks?view=aspnetcore-11.0).
 - **Delegates and lambdas registered with routing.** 👈 questo è il meccanismo principale utilizzato nelle Minimal API
 
 ### [Routing basics](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing#routing-basics)
@@ -579,7 +562,7 @@ The preceding example includes a single endpoint using the [MapGet](https://lea
 
 **Routing uses a pair of middleware, registered by [UseRouting](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutingapplicationbuilderextensions.userouting) and [UseEndpoints](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.endpointroutingapplicationbuilderextensions.useendpoints):**
 
-- `UseRouting` adds route matching to the middleware pipeline. This middleware looks at the set of endpoints defined in the app, and selects the [best match](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#urlm) based on the request.
+- `UseRouting` adds route matching to the middleware pipeline. This middleware looks at the set of endpoints defined in the app, and selects the [best match](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0#urlm) based on the request.
 - `UseEndpoints` adds endpoint execution to the middleware pipeline. It runs the delegate associated with the selected endpoint.
 
 **Apps typically don't need to call `UseRouting` or `UseEndpoints`. [WebApplicationBuilder](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.webapplicationbuilder) configures a middleware pipeline that wraps middleware added in `Program.cs` with `UseRouting` and `UseEndpoints`. However, apps can change the order in which `UseRouting` and `UseEndpoints` run by calling these methods explicitly. For example, the following code makes an explicit call to `UseRouting`:**
@@ -618,7 +601,7 @@ Endpoints that can be matched and executed by the app are configured in `UseEnd
 - [MapRazorPages for Razor Pages](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.razorpagesendpointroutebuilderextensions.maprazorpages)
 - [MapControllers for controllers](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.builder.controllerendpointroutebuilderextensions.mapcontrollers)
 - [MapHub<THub> for SignalR](https://learn.microsoft.com/en-us/dotnet/api/microsoft.aspnetcore.signalr.hubroutebuilder.maphub)
-- [MapGrpcService<TService> for gRPC](https://learn.microsoft.com/en-us/aspnet/core/grpc/aspnetcore?view=aspnetcore-9.0)
+- [MapGrpcService<TService> for gRPC](https://learn.microsoft.com/en-us/aspnet/core/grpc/aspnetcore?view=aspnetcore-11.0)
 
 The following example shows routing with a more sophisticated route template:
 
@@ -629,7 +612,7 @@ app.MapGet("/hello/{name:alpha}", (string name) => $"Hello {name}!");
 The string `/hello/{name:alpha}` is a **route template**. A route template is used to configure how the endpoint is matched. In this case, the template matches:
 
 - A URL like `/hello/Docs`
-- Any URL path that begins with `/hello/` followed by a sequence of alphabetic characters. `:alpha` applies a route constraint that matches only alphabetic characters. [Route constraints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-9.0#route-constraints) are explained later in this article.
+- Any URL path that begins with `/hello/` followed by a sequence of alphabetic characters. `:alpha` applies a route constraint that matches only alphabetic characters. [Route constraints](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/routing?view=aspnetcore-11.0#route-constraints) are explained later in this article.
 
 The second segment of the URL path, `{name:alpha}`:
 
@@ -885,6 +868,7 @@ public class PerformanceFilter: IEndpointFilter
 
 ```cs
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using TodoApiV2;
 using TodoApiV2.Filters;
 using TodoApiV2.Middlewares;
@@ -899,33 +883,15 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//adding API explorer
-builder.Services.AddEndpointsApiExplorer();
-// adding OpenAPI configuration
-builder.Services.AddOpenApiDocument(config =>
-{
-	config.DocumentName = "TodoApiV2";
-	config.Title = "TodoAPI v2";
-	config.Version = "v1";
-});
 
 //creation of Web application
 var app = builder.Build();
 
-//adding middleware for Swagger and OpenAPI
+//adding middleware for OpenAPI and Scalar UI in Development only
 if (app.Environment.IsDevelopment())
 {
-	//adding middleware for OpenAPI
 	app.MapOpenApi();
-	//adding middleware for Swagger
-	app.UseOpenApi();
-	app.UseSwaggerUi(config =>
-	{
-		config.DocumentTitle = "TodoAPI";
-		config.Path = "/swagger";
-		config.DocumentPath = "/swagger/{documentName}/swagger.json";
-		config.DocExpansion = "list";
-	});
+	app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
@@ -939,7 +905,7 @@ app.MapGroup("/private/todos")
 //.RequireAuthorization();
 
 //alcuni esempi di rotte con gruppi presi dalla documentazione con qualche adattamento
-var all = app.MapGroup("").WithOpenApi();
+var all = app.MapGroup("");
 var org = all.MapGroup("{org}");
 var user = org.MapGroup("{user}");
 //questa è una GET sulla rotta definita da /{org}/{user}/

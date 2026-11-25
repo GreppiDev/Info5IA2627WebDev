@@ -469,6 +469,8 @@ if (builder.Environment.IsDevelopment())
 // Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione al DB
 // già durante builder.Build(), facendo fallire `dotnet ef migrations add` o `--no-connect` se il container è spento.
 var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 
 // 👇 configurazione del provider per EF Core nel caso di MariaDb con il pacchetto Microting
 builder.Services.AddDbContext<PizzaDb>(dbContextOptions =>

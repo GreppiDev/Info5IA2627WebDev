@@ -502,6 +502,8 @@ var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConn
 // anziché usare ServerVersion.AutoDetect(connectionString), perché AutoDetect apre una connessione
 // durante builder.Build() facendo fallire `dotnet ef` quando il container DB è spento.
 var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AziendaDbContext>(opt =>
 {
     opt.UseMySql(connectionString, serverVersion);
@@ -700,7 +702,12 @@ if (builder.Environment.IsDevelopment())
 }
 var connectionString = builder.Configuration.GetConnectionString("AziendaAPIConnection")
     ?? throw new InvalidOperationException("Connection string 'AziendaAPIConnection' not found.");
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
 var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AziendaDbContext>(opt =>
 {
     opt.UseMySql(connectionString, serverVersion);

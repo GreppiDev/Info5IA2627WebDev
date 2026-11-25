@@ -133,21 +133,12 @@ Si riporta di seguito un [esempio di Minimal API che utilizza `IMemoryCache`](..
 
 ```csharp
 using Microsoft.Extensions.Caching.Memory;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-//aggiunge il servizio che permette ad OpenAPI di leggere i metadati delle API
-builder.Services.AddEndpointsApiExplorer();
-//configura il servizio OpenAPI
-builder.Services.AddOpenApiDocument(config =>
-    {
-        config.Title = "Memory Cache Demo v1";
-        config.DocumentName = "Memory Cache Demo API";
-        config.Version = "v1";
-    }
-);
 
 // Registra il servizio IMemoryCache
 builder.Services.AddMemoryCache();
@@ -158,16 +149,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    //permette a Swagger (NSwag) di generare un file JSON con le specifiche delle API
-    app.UseOpenApi();
-    //permette di configurare l'interfaccia SwaggerUI (l'interfaccia grafica web di Swagger (NSwag) che permette di interagire con le API)
-    app.UseSwaggerUi(config =>
-    {
-        config.DocumentTitle = "Memory Cache Demo v1";
-        config.Path = "/swagger";
-        config.DocumentPath = "/swagger/{documentName}/swagger.json";
-        config.DocExpansion = "list";
-    });
+    app.MapScalarApiReference();
 
     app.UseDeveloperExceptionPage();
 }
@@ -2936,13 +2918,12 @@ A titolo puramente didattico, gli esempi mostrati con l'utilizzo della libreria 
     ```cs
     using DistributedCacheDemo.Models; // Assumi esista questo namespace con la classe Product
     using Microsoft.Extensions.Caching.Hybrid;
+    using Scalar.AspNetCore;
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Registrazione servizi standard per API e Swagger/OpenAPI
+    // Registrazione servizi standard per OpenAPI
     builder.Services.AddOpenApi();
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddOpenApiDocument(/*...*/);
 
     // *** Configurazione Cache Distribuita (L2 - Redis) ***
     // Legge la stringa di connessione e il nome istanza da appsettings.json
@@ -2980,12 +2961,11 @@ A titolo puramente didattico, gli esempi mostrati con l'utilizzo della libreria 
 
     var app = builder.Build();
 
-    // Configurazione Middleware (Swagger, Dev Page, etc.)
+    // Configurazione Middleware (OpenAPI, Scalar UI, Dev Page, etc.)
     if (app.Environment.IsDevelopment())
     {
         app.MapOpenApi();
-        app.UseOpenApi();
-        app.UseSwaggerUi(/*...*/);
+        app.MapScalarApiReference();
         app.UseDeveloperExceptionPage();
     }
 
