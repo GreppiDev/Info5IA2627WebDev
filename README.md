@@ -116,6 +116,9 @@
 
    1. [Intelligenza Artificiale - concetti di base, aspetti sociali, economici e ambientali](./civica/ai/index.md)
 
+### Orientamento
+
+   1. [Percorsi di Orientamento — IBM Data Evolution e Architetture Dati Enterprise](./orientamento/index.md)
 
 ### Verso l'Esame di Stato
 
