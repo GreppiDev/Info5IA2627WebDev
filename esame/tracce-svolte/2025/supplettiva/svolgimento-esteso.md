@@ -2352,11 +2352,15 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+var connectionString = builder.Configuration.GetConnectionString("MariaDb");
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(
-        builder.Configuration.GetConnectionString("MariaDb"),
-        ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("MariaDb"))
-    ));
+    options.UseMySql(connectionString, serverVersion));
 
 var app = builder.Build();
 

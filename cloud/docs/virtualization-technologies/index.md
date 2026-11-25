@@ -1086,15 +1086,15 @@ Il file `docker-compose.yml` è il cuore di questo strumento. Analizziamone le s
             ```xml
             <Project Sdk="Microsoft.NET.Sdk.Web">
               <PropertyGroup>
-                <TargetFramework>net9.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
               </PropertyGroup>
               <ItemGroup>
-                
-                 <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0-preview.3.efcore.9.0.0" />
-                
-                <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
+                <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
+                <PackageReference Include="Scalar.AspNetCore" Version="3.2.1" />
+                <PackageReference Include="Microting.EntityFrameworkCore.MySql" Version="11.0.0" />
+                <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="11.0.0">
                     <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
                     <PrivateAssets>all</PrivateAssets>
                 </PackageReference>
@@ -1133,6 +1133,7 @@ Il file `docker-compose.yml` è il cuore di questo strumento. Analizziamone le s
 
             ```cs
             using Microsoft.EntityFrameworkCore;
+            using Scalar.AspNetCore;
             using TodoApi.Data;
             using TodoApi.Models;
 
@@ -1141,19 +1142,25 @@ Il file `docker-compose.yml` è il cuore di questo strumento. Analizziamone le s
             // Legge la connection string dalla configurazione (passata via environment)
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+            // Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+            // Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+            // al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+            var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+            // In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+            // var serverVersion = ServerVersion.AutoDetect(connectionString);
+
             // Configura il DbContext per usare MariaDB
             builder.Services.AddDbContext<TodoDbContext>(options =>
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+                options.UseMySql(connectionString, serverVersion));
 
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddOpenApi();
 
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                app.MapOpenApi();
+                app.MapScalarApiReference();
             }
 
             // Endpoint per ottenere tutti i To-Do
@@ -1193,7 +1200,7 @@ Il file `docker-compose.yml` è il cuore di questo strumento. Analizziamone le s
 
         ```dockerfile
         # Fase 1: Build dell'applicazione usando l'SDK completo
-        FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+        FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
         WORKDIR /src
 
         # Copia il file di progetto e ripristina le dipendenze per sfruttare la cache dei layer
@@ -1205,7 +1212,7 @@ Il file `docker-compose.yml` è il cuore di questo strumento. Analizziamone le s
         RUN dotnet publish -c Release -o /app/publish
 
         # Fase 2: Creazione dell'immagine finale basata sul runtime più leggero
-        FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+        FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS final
         WORKDIR /app
         COPY --from=build /app/publish .
         # Assicurarsi che il nome della DLL corrisponda al nome del progetto

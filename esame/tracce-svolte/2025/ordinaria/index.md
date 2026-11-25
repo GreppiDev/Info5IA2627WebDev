@@ -902,25 +902,30 @@ var builder = WebApplication.CreateBuilder(args);
 // Recupera la stringa di connessione dal file appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Aggiunge il DbContext ai servizi, specificando il provider MariaDB/MySQL
+// Aggiunge il DbContext ai servizi, specificando il provider MariaDB/MySQL (Microting.EntityFrameworkCore.MySql)
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<VerifaiDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(connectionString, serverVersion)
 );
 
-// (Opzionale) Aggiunge il supporto per la documentazione API con Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// (Opzionale) Aggiunge il supporto OpenAPI per la documentazione API (con Scalar in sviluppo)
+builder.Services.AddOpenApi();
 
 
 var app = builder.Build();
 
 // --- 2. CONFIGURAZIONE DEL MIDDLEWARE (HTTP Request Pipeline) ---
 
-// In ambiente di sviluppo, abilita Swagger per testare le API
+// In ambiente di sviluppo, abilita OpenAPI e Scalar per testare le API
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 // Abilita il serving dei file statici dalla cartella wwwroot (per il frontend)

@@ -329,12 +329,8 @@ app.MapPost("/login", (UserLogin login) =>
     return Results.Unauthorized();
 })
 .WithName("Login")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Effettua il login e ottiene token di accesso";
-    operation.Description = "Autentica l'utente e restituisce access token e refresh token";
-    return operation;
-});
+.WithSummary("Effettua il login e ottiene token di accesso")
+.WithDescription("Autentica l'utente e restituisce access token e refresh token");
 
 // Endpoint protetto, accessibile solo con un token valido
 app.MapGet("/protected", (HttpContext context) =>
@@ -359,12 +355,8 @@ app.MapGet("/protected", (HttpContext context) =>
 })
 .RequireAuthorization()
 .WithName("Protected")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Endpoint protetto ad accesso limitato";
-    operation.Description = "Restituisce informazioni sull'utente autenticato";
-    return operation;
-});
+.WithSummary("Endpoint protetto ad accesso limitato")
+.WithDescription("Restituisce informazioni sull'utente autenticato");
 
 // Endpoint per recuperare le informazioni dell'utente autenticato
 app.MapGet("/user-info", (HttpContext context) =>
@@ -403,12 +395,8 @@ app.MapGet("/user-info", (HttpContext context) =>
 })
 .RequireAuthorization() // Richiede l'autenticazione
 .WithName("UserInfo")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Recupera informazioni sull'utente corrente";
-    operation.Description = "Restituisce i dettagli dell'utente autenticato inclusi ruoli e permessi";
-    return operation;
-});
+.WithSummary("Recupera informazioni sull'utente corrente")
+.WithDescription("Restituisce i dettagli dell'utente autenticato inclusi ruoli e permessi");
 
 // Endpoint protetto, accessibile solo agli amministratori
 app.MapGet("/admin", (HttpContext context) =>
@@ -439,12 +427,8 @@ app.MapGet("/admin", (HttpContext context) =>
 })
 .RequireAuthorization("RequireAdministratorRole") // Richiede la policy specifica
 .WithName("AdminArea")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Area amministrativa riservata";
-    operation.Description = "Questo endpoint è accessibile solo agli utenti con ruolo Administrator";
-    return operation;
-});
+.WithSummary("Area amministrativa riservata")
+.WithDescription("Questo endpoint è accessibile solo agli utenti con ruolo Administrator");
 
 // Endpoint per il rinnovo del token - NON richiede l'autenticazione
 app.MapPost("/refresh", (RefreshRequest request) =>
@@ -518,11 +502,7 @@ app.MapPost("/refresh", (RefreshRequest request) =>
     return Results.Unauthorized();
 })
 .WithName("RefreshToken")
-.WithOpenApi(operation =>
-{
-    operation.Summary = "Rinnova l'access token utilizzando un refresh token valido";
-    return operation;
-});
+.WithSummary("Rinnova l'access token utilizzando un refresh token valido");
 
 app.Run();
 ```

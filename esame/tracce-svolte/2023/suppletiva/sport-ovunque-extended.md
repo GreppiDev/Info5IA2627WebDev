@@ -770,8 +770,8 @@ L'applicazione web sarà strutturata in diverse aree funzionali per i differenti
 **Architettura Implementativa:**
 Si propone un'architettura basata su:
 
-  - **Backend:** ASP.NET Core Minimal API, utilizzando .NET 8 (o versione LTS corrente).
-      - **ORM:** Entity Framework Core con provider per MariaDB (es. `Pomelo.EntityFrameworkCore.MySql`).
+  - **Backend:** ASP.NET Core Minimal API, utilizzando .NET 11.
+      - **ORM:** Entity Framework Core con provider per MariaDB (`Microting.EntityFrameworkCore.MySql`, proseguimento ufficiale di `Pomelo.EntityFrameworkCore.MySql`).
       - **Autenticazione:** ASP.NET Core Identity configurata per Cookie Authentication.
       - **Autorizzazione:** Basata su Ruoli ('Abbonato', 'Palestra', 'Admin'), letti dal database e aggiunti come Claim.
       - **API:** Endpoint RESTful per tutte le funzionalità.
@@ -1167,8 +1167,14 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Configurazione Servizi ---
 // 1. DbContext con EF Core per MariaDB
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<SportOvunqueDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(connectionString, serverVersion)
            .LogTo(Console.WriteLine, LogLevel.Information)
            .EnableSensitiveDataLogging() // Solo in sviluppo
 );

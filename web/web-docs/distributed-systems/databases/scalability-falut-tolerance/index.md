@@ -331,7 +331,7 @@ flowchart TD
     class F1,F2,F3,F4,F5 featureNode
 ```
 
-Con Galera Cluster e EF Core + Pomelo, la gestione delle connessioni è diversa rispetto a una configurazione master-slave tradizionale.
+Con Galera Cluster e EF Core + `Microting.EntityFrameworkCore.MySql` (proseguimento ufficiale di Pomelo per .NET 10/11), la gestione delle connessioni è diversa rispetto a una configurazione master-slave tradizionale.
 
 Nel **Galera Cluster** tutti i nodi sono master (multi-master), quindi ogni nodo può gestire sia letture che scritture. Ecco come configurarlo:
 
@@ -344,9 +344,9 @@ Nel **Galera Cluster** tutti i nodi sono master (multi-master), quindi ogni nodo
 
 **Approcci di gestione:**
 
-**1. Connection String con Multiple Hosts (Pomelo supporta failover automatico):**
+**1. Connection String con Multiple Hosts (Microting / ex Pomelo supporta failover automatico):**
 
-- Pomelo MySQL prova automaticamente i server nell'ordine specificato
+- `Microting.EntityFrameworkCore.MySql` prova automaticamente i server nell'ordine specificato
 - Se un nodo fallisce, passa automaticamente al successivo
 
 **2. Load Balancer Database (HAProxy/ProxySQL):**
@@ -511,7 +511,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), mySqlOptions =>
+    // Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+    // Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+    // al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+    var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+    // In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+    // var serverVersion = ServerVersion.AutoDetect(connectionString);
+    options.UseMySql(connectionString, serverVersion, mySqlOptions =>
     {
         mySqlOptions.EnableRetryOnFailure(
             maxRetryCount: 3,
@@ -697,7 +703,7 @@ Potrebbe funzionare allo stesso modo (ma con prestazioni differenti) in base all
 Tutto il codice con `await context.SaveChangesAsync()` e `await context.Products.ToListAsync()` rimane **identico** perché:
 
 - **EF Core** astrae la connessione database
-- **Pomelo MySQL** gestisce failover e load balancing
+- **`Microting.EntityFrameworkCore.MySql`** (ex Pomelo) gestisce failover e load balancing
 - **Connection pooling** è trasparente
 - **Retry policies** sono configurate una volta
 
@@ -892,10 +898,10 @@ graph TB
     %% Connection String representation
     CS[📝 Connection String:<br/>Server=galera-node1,galera-node2,galera-node3<br/>Automatic Failover]
     
-    BE1 -.->|EF Core + Pomelo| CS
-    BE2 -.->|EF Core + Pomelo| CS
-    BE3 -.->|EF Core + Pomelo| CS
-    BE4 -.->|EF Core + Pomelo| CS
+    BE1 -.->|EF Core + Microting| CS
+    BE2 -.->|EF Core + Microting| CS
+    BE3 -.->|EF Core + Microting| CS
+    BE4 -.->|EF Core + Microting| CS
     
     %% Styling
     classDef client fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
@@ -1629,7 +1635,7 @@ Per MySqlConnector, l'opzione LoadBalance può avere diverse strategie:
 
 ### 5.3. Configurazione di Entity Framework Core per Database Distribuiti
 
-**Esempio (utilizzando `Pomelo.EntityFrameworkCore.MySql` e una stringa di connessione a un proxy):**
+**Esempio (utilizzando `Microting.EntityFrameworkCore.MySql` — proseguimento di Pomelo — e una stringa di connessione a un proxy):**
 
 ```cs
 // In Program.cs
@@ -1638,9 +1644,16 @@ Per MySqlConnector, l'opzione LoadBalance può avere diverse strategie:
 var builder = WebApplication.CreateBuilder(args);
 string connectionString = builder.Configuration.GetConnectionString("MariaDbClusterProxyConnection");
 
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString,
-                     ServerVersion.AutoDetect(connectionString),
+                     serverVersion,
                      mySqlOptions =>
                          mySqlOptions.EnableRetryOnFailure(
                              maxRetryCount: 5, // Numero massimo di tentativi

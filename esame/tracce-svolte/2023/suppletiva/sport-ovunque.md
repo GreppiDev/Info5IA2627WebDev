@@ -629,8 +629,8 @@ La struttura rimane simile a quella descritta in precedenza, ma evidenziamo i ru
 **Architettura Implementativa:** ASP.NET Core Minimal API + Frontend Statico + Autenticazione Cookie
 
 - **Backend (ASP.NET Core Minimal API):**
-    - **Framework:** .NET 8 (o versione LTS corrente).
-    - **Database ORM:** Entity Framework Core (EF Core) con provider per MariaDB (`Pomelo.EntityFrameworkCore.MySql`).
+    - **Framework:** .NET 11.
+    - **Database ORM:** Entity Framework Core (EF Core) con provider per MariaDB (`Microting.EntityFrameworkCore.MySql`, proseguimento ufficiale di `Pomelo.EntityFrameworkCore.MySql` per EF Core 10/11).
     - **Autenticazione:** ASP.NET Core Identity (configurata per Cookie Authentication). Memorizza gli utenti in `UTENTI` e tabelle correlate (se si usa Identity completo) o gestisce manualmente l'hashing e la verifica password sulla tabella `UTENTI`. Il login emette un cookie di autenticazione (`.AspNetCore.Identity.Application`).
     - **Autorizzazione:** Basata su Ruoli. I ruoli ('Abbonato', 'Palestra', 'Admin') vengono letti dalla tabella `UTENTI` durante il login e aggiunti come *Claim* al `ClaimsPrincipal` associato al cookie. Gli endpoint API vengono protetti usando `.RequireAuthorization(policy => policy.RequireRole("NomeRuolo"))`.
     - **API:** Endpoint RESTful Minimal API per le varie funzionalità.
@@ -789,9 +789,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. DbContext con EF Core per MariaDB
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-// Assicurati che Pomelo.EntityFrameworkCore.MySql sia referenziato nel progetto
+// Assicurati che Microting.EntityFrameworkCore.MySql (ex Pomelo) sia referenziato nel progetto
+// Versione esplicita del server MariaDB (es. immagine Docker mariadb:lts 12.3.3).
+// Si preferisce a ServerVersion.AutoDetect(connectionString) perché AutoDetect apre una connessione
+// al DB già all'avvio/build dell'app, facendo fallire comandi offline come `dotnet ef` se il container è spento.
+var serverVersion = new MariaDbServerVersion(new Version(12, 3, 3));
+// In alternativa, se il server MariaDB è sempre raggiungibile e si vuole rilevare automaticamente la versione:
+// var serverVersion = ServerVersion.AutoDetect(connectionString);
 builder.Services.AddDbContext<SportOvunqueDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+    options.UseMySql(connectionString, serverVersion)
            .LogTo(Console.WriteLine, LogLevel.Information) // Logga le query SQL generate da EF Core
            .EnableSensitiveDataLogging() // Utile in sviluppo per vedere i valori dei parametri
 );
